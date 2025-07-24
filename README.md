@@ -845,3 +845,9 @@ Every interaction is crafted to minimize friction and maximize creative momentum
 **Accessibility and inclusivity** are integral, not addons. `Semantics` widgets provide vital context for assistive technologies, `SelectableText` ensures content is portable, and the planned image-to-text features will further broaden access. Diverse TTS voices acknowledge and cater to varied preferences. Even **nickname validation**, while a security measure, contributes to a respectful and welcoming community space, inviting users to express their identity thoughtfully.
 
 Haikuverse App, therefore, offers a **curated yet profoundly flexible creative environment.** Client-side prompt engineering cedes significant artistic control to the user. Persistent cloud storage (Cloud Firestore and Firebase Storage) acts as a reliable guardian of their creative artifacts—profiles, favorite haikus, associated images, audio files, and entire constellation narratives—ensuring their evolving Haikuverse is preserved and accessible across devices. Features like multiple image save slots and the deep customization options for constellations encourage not just creation, but *re-creation*, interpretation, and a continuous, iterative dialogue with their own imagination and the AI's generative capabilities. It is in this dynamic interplay, this invitation to explore, to personalize, to give deeper meaning, that Haikuverse App seeks to maximize the inherent human delight in discovery, artistry, and the sublime experience of seeing one's own creative spark amplified and reflected in a universe of their own making.
+
+---
+
+## License
+
+Copyright © 2025 Fancyland, LLC
