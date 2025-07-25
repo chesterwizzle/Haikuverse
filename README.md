@@ -12,7 +12,7 @@ What distinguishes Haikuverse are its advanced discovery and visualization featu
 This document offers a comprehensive technical deep-dive into Haikuverse's architecture. It details the core components—from the client-side procedural graph generation logic and state management strategies to the intricate backend Cloud Function orchestrations and advanced AI service integrations—elucidating data flow patterns, multi-layered security models, and providing a clear guide for setup and configuration. Its aim is to provide a thorough understanding of the application's design, innovative features, and the engineering principles that bring this creative social experience platform to life.
 
 ---
-## 2. Functional Block Diagram of the haiku_bot_cloud
+## 2. Functional Block Diagram of the Haikuverse Application
 
 ```mermaid
 ---
