@@ -12,7 +12,7 @@ What distinguishes Haikuverse are its advanced discovery and visualization featu
 This document offers a comprehensive technical deep-dive into Haikuverse's architecture. It details the core components—from the client-side procedural graph generation logic and state management strategies to the intricate backend Cloud Function orchestrations and advanced AI service integrations—elucidating data flow patterns, multi-layered security models, and providing a clear guide for setup and configuration. Its aim is to provide a thorough understanding of the application's design, innovative features, and the engineering principles that bring this creative social experience platform to life.
 
 ---
-## 2. Functional Block Diagram of the Haikuverse Application
+## 2. Functional Block Diagram of the haiku_bot_cloud
 
 ```mermaid
 ---
@@ -90,6 +90,7 @@ flowchart LR
     subgraph AuthVerificationScreens["Auth & Verification Screens"]
         AuthScreen["AuthScreen UI & Logic"]
         VerificationScreen["VerificationScreen UI & Logic"]
+        GoogleSignInLogic["Google Sign-In (Plugin & GSI)"]
     end
 
     subgraph Haikuverse["Haikuverse Experience"]
@@ -141,6 +142,7 @@ flowchart LR
         FirebaseAuthBackend[("Firebase<br>Authentication")]
         FirestoreDatabaseBackend[("Cloud<br>Firestore")]
         FirebaseStorageBackend[("Cloud<br>Storage")]
+        FirebaseAppCheck[("Firebase<br>App Check")]
     end
     subgraph CloudFunctionsBackend["Google Cloud Functions"]
         direction TB
@@ -207,7 +209,7 @@ flowchart LR
   StarsScreenDef -- "Generates images via" <--> VertexAIServiceFlutter
   StarsScreenDef -- "Saves images via" <--> StorageServiceFlutter
   
-  %% UPDATED Connections for Preferences Screen
+  %% Connections for Preferences Screen
   SettingsTab -- "Manages profile via" <--> FirestoreServiceFlutter
   SettingsTab -- "Sanitizes content via" <--> SanitizationFuncs
   SettingsTab -- "Signs out via" <--> AuthServiceFlutter
@@ -216,10 +218,11 @@ flowchart LR
   FollowersTab -- "Fetches follower data via" --> FirestoreServiceFlutter
   
   AuthVerificationScreens -- "Authenticates via" <--> AuthServiceFlutter
+  AuthScreen <--> GoogleSignInLogic
   ConstellationsScreenDef -- "Manages & Explores via" <--> FirestoreServiceFlutter
   ExploreTab -- "Gets advice via" <--> GeminiServiceFlutter
   
-  %% UPDATED Connections for Feedback & Notifications
+  %% Connections for Feedback & Notifications
   FeedbackScreen -- "Submits feedback via" --> FirestoreServiceFlutter
   NotificationsScreen -- "Manages notifications via" --> FirestoreServiceFlutter
   GlobalProviders -- "Provides auth state to" --> NotificationsScreen
@@ -247,6 +250,7 @@ flowchart LR
   DBTriggers -- "Triggered by writes to" --> FirestoreDatabaseBackend
   UIScreens -- "Initiates actions through" --> ClientServices
   ClientServices -- "Orchestrates calls to" --> Backend
+  Initialization <--> FirebaseAppCheck
 
   %% Zeitgeist Engine Data Flow
   ZeitgeistFuncs -- "Analyzes & Writes to" --> FirestoreDatabaseBackend
@@ -289,7 +293,7 @@ This file serves as the primary entry point and central orchestrator of the Flut
     * `_favorites`: `List<Haiku>` serving as a local, in-memory reflection of the real-time favorite haikus streamed from Cloud Firestore.
     * `_maxFavorites`: Defines the limit for favorite haikus.
     * `_favoritesSubscription`, `_authStateSubscription`,`_notificationsSubscription`: StreamSubscriptions for managing listeners to Firestore favorites, Firebase auth state, and new user notifications respectively.
-    * `initState()`: Sets up `_authStateSubscription` to trigger `_subscribeToFavorites()` and `_subscribeToNotifications()` on login and corresponding unsubscribe methods on logout.
+    * `initState():` Sets up `_authStateSubscription` to trigger `_subscribeToFavorites()` and `_subscribeToNotifications()` on login. On logout, it triggers the corresponding unsubscribe methods and also calls the `googleSignOut()` web helper to disable Google's One Tap prompt, preventing state issues on subsequent web sign-in attempts.
     * `_subscribeToFavorites(String userId)`: Listens to the user's Firestore favorites collection via `firestoreService.getFavoritesStream()`, updating the local `_favorites` list reactively.
     * `_unsubscribeFromFavorites()`: Cancels `_favoritesSubscription`, clears the local `_favorites` list, and resets the `IndexProvider`.
     * `_toggleFavorite(Haiku haiku)`: Manages adding/removing haikus from Firestore via `firestoreService.addFavorite`/`removeFavorite`. Coordinates associated Firebase Storage image and audio file deletion (via `_deleteImageFromUrl` and `_deleteStorageFileByUrl` which use `storageService`) and `IndexProvider` adjustments. Relies on the Firestore stream for local list updates.
@@ -447,6 +451,11 @@ This directory houses custom, reusable Flutter widgets that promote UI consisten
 *   **`avatar_studio.dart`:** The central component in the `CustomizationTab` that combines the user's profile picture, a selected animated frame, and equipped flair into a single composite avatar.
 *   **`achievement_gallery.dart`:** A `GridView` that displays all possible achievements, indicating their locked/unlocked status and allowing unlocked achievements to be selected as "flair." It also defines the `AchievementData` and `FlairData` classes that serve as the source of truth for all achievements in the app.
 *   **Animated Frame Widgets (`lib/widgets/frames/`):** A collection of polymorphic, self-contained animated widgets (`CometFrameWidget`, `PrideFrameWidget`, `VineFrameWidget`, etc.) that all extend the abstract `AnimatedFrameWidget` class. Each frame manages its own `AnimationController` and `CustomPainter` to render unique, dynamic visual effects around the user's avatar. They are designed to be "smart," reacting to equipped flair by rendering burst effects or other interactive elements.
+* **Google Sign-In Web Helpers (`gsi_*.dart` & `google_sign_in_button_*.dart`):** A suite of files that implement a modern, platform-aware Google Sign-In experience. This architecture uses conditional imports to provide the official, browser-rendered Google button on the web, while seamlessly falling back to the standard `google_sign_in` plugin on mobile. This approach completely isolates web-specific code (bypassing the deprecated `dart:html` in favor of `package:web` and `dart:js_interop`) from the mobile build path, ensuring cross-platform compatibility without compromises.
+    * `google_sign_in_button_web.dart`: The web-only Flutter widget that renders the official Google button. It uses an `HtmlElementView` to host a `<div>` element, which is assigned a **unique ID** on each initialization. This strategy forces a fresh instance of the button to be created on every login screen visit, preventing "stale callback" runtime crashes that can occur after a user signs out and then attempts to sign in again.
+    * `gsi_web_helper.dart`: The web-only helper containing the JS interop logic. It calls the Google Identity Services (GSI) JavaScript library to both render the button inside the widget's `<div>` and to handle the authentication callback. It also includes the crucial `googleSignOut` function, which calls `disableAutoSelect` on the GSI library, preventing the "One Tap" prompt from causing state issues after a user has logged out.
+    * `google_sign_in_button_connector.dart` & `gsi_connector.dart`: A pair of conditional export "barrel" files that provide the correct platform-specific implementation (`_web` vs. `_stub`) to the rest of the application at compile time.
+    * `google_sign_in_button_stub.dart` & `gsi_stub.dart`: Stub implementations for mobile that allow the app to compile by providing empty, non-functional placeholders for the web-only code.
 
 #### Application Theming System
 
@@ -764,7 +773,7 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
     * `generateHaikuAudio` (in `_MyAppState`).
     * `generateStarNames`, `generateConstellationFable`, `getTravelAdvice` (in GeminiService).
 * **Asset Verification:** Ensure all prompt templates (`.txt` files in `assets/`) and the `assets/default_profile.png` are correctly declared in `pubspec.yaml`.
-* **Google Sign-In Configuration:** For Google Sign-In to function correctly on Android, the Web Client ID (obtained from the Google provider settings in the Firebase Authentication console) must be provided as the `serverClientId`. In this project, this is handled in the `initState` method of `AuthScreen` where `GoogleSignIn.instance.initialize()` is called.
+* **Google Sign-In Configuration:** The application uses a hybrid approach. For mobile (Android), it uses the standard `google_sign_in` plugin, which is initialized in `main.dart` with the `serverClientId`. For the web, it uses a direct implementation of the Google Identity Services (GSI) library, which is initialized within the web-specific helper files and does not require client-side initialization in `main.dart`.
 
 **d. Firestore Security Rules & Indexes:**
 
