@@ -3,7 +3,7 @@
 ---
 ## 1. Introduction
 
-Haikuverse is a Flutter application designed as a rich, multi-sensory platform for creative expression. It empowers users to generate evocative haiku poems with **Google Gemini**, complement them with compelling imagery from Google Cloud's **Imagen 3**, and create dynamic audio narrations using **Google Cloud Text-to-Speech**. These creations are shared within an interactive "Haikuverse," a community space where users can follow their favorite poets, earn achievements, and express their identity through deeply personalized avatars featuring unique, **procedurally generated animated frames**. This entire experience is grounded in a philosophy of non-toxic social interaction by design.
+Haikuverse is a Flutter application designed as a rich, multi-sensory platform for creative expression. It empowers users to generate evocative haiku poems with **Google Gemini**, complement them with compelling imagery from Google Cloud's **Imagen 3**, and create dynamic audio narrations using **Google Cloud Text-to-Speech**. These creations are shared within an interactive "Haikuverse," a community space where users can follow their favorite poets, earn achievements, and express their identity through deeply personalized avatars featuring unique, **procedurally generated animated frames**. This entire experience is grounded in a philosophy of non-toxic social interaction by design. 
 
 The application is built on a robust and scalable cloud architecture. Secure user management is handled by **Firebase Authentication**, reinforced by **Firebase App Check** to ensure requests originate from authentic app instances using Play Integrity on Android and reCAPTCHA Enterprise on the web. User profiles, creative works, and community data are managed through a sophisticated data model that strategically segregates private (`/users`) and public (`/public_profiles`) information within **Cloud Firestore**. All media assets are managed securely in **Firebase Storage**. A powerful serverless backend, architected with Google **Cloud Functions**, orchestrates all critical operations, from secure AI interactions to essential content safety checks using the powerful safety filters of **Google Gemini**.
 
@@ -12,7 +12,7 @@ What distinguishes Haikuverse are its advanced discovery and visualization featu
 This document offers a comprehensive technical deep-dive into Haikuverse's architecture. It details the core components—from the client-side procedural graph generation logic and state management strategies to the intricate backend Cloud Function orchestrations and advanced AI service integrations—elucidating data flow patterns, multi-layered security models, and providing a clear guide for setup and configuration. Its aim is to provide a thorough understanding of the application's design, innovative features, and the engineering principles that bring this creative social experience platform to life.
 
 ---
-## 2. Functional Block Diagram of the haiku_bot_cloud
+## 2. Functional Block Diagram of the Haikuverse App
 
 ```mermaid
 ---
@@ -87,11 +87,12 @@ flowchart LR
         NotificationsScreen["NotificationsScreen"]
     end
 
-    subgraph AuthVerificationScreens["Auth & Verification Screens"]
-        AuthScreen["AuthScreen UI & Logic"]
-        VerificationScreen["VerificationScreen UI & Logic"]
-        GoogleSignInLogic["Google Sign-In (Plugin & GSI)"]
-    end
+subgraph AuthVerificationScreens["Auth & Verification Screens"]
+    AuthScreen["AuthScreen UI & Logic"]
+    EulaScreen["EULA Acceptance Screen"]
+    VerificationScreen["VerificationScreen UI & Logic"]
+    GoogleSignInLogic["Google Sign-In (Plugin & GSI)"]
+end
 
     subgraph Haikuverse["Haikuverse Experience"]
         direction TB
@@ -199,7 +200,7 @@ flowchart LR
 %% ---------------------------------------------------------------------------
 %% Data Flow Connections (High-Level)
 %% ---------------------------------------------------------------------------
-  Main --> Initialization & GlobalProviders & MyAppWidgetState
+  Main --> Initialization & GlobalProviders & MyAppWidgetState & AuthVerificationScreens
   Listeners -- "Updates" --> CoreLogic
   CoreLogic -- "Triggers calls via" --> FirestoreServiceFlutter
   CoreLogic -- "Triggers calls via" --> StorageServiceFlutter
@@ -251,6 +252,10 @@ flowchart LR
   UIScreens -- "Initiates actions through" --> ClientServices
   ClientServices -- "Orchestrates calls to" --> Backend
   Initialization <--> FirebaseAppCheck
+  AuthScreen --> EulaScreen
+  AuthScreen --> VerificationScreen
+  VerificationScreen --> EulaScreen
+  EulaScreen --> HomeScreenDef
 
   %% Zeitgeist Engine Data Flow
   ZeitgeistFuncs -- "Analyzes & Writes to" --> FirestoreDatabaseBackend
@@ -305,7 +310,7 @@ This file serves as the primary entry point and central orchestrator of the Flut
 
 * **Root Application UI Structure (`MaterialApp` Widget):**
     * Sets the application title, applies the current theme from `ThemeProvider`.
-    * Dynamically determines `initialRoute` (`/auth` or `/home`) based on Firebase authentication state.
+    * Uses a `FutureBuilder` to call the `_getInitialRoute` helper method, which asynchronously determines the correct starting screen (`/auth`, `/eula-acceptance`, or `/home`) by checking both the Firebase Authentication state and the user's EULA acceptance status in Firestore.
     * Defines `routes` for navigation, injecting services into screens.
 
 * **`_buildHomeScreen()` - Main Application UI Construction (`Scaffold`):**
@@ -424,12 +429,12 @@ These are the primary top-level screens accessible via the bottom navigation bar
 
 These components provide focused UIs for specific tasks or display contextual information.
 
-*   **`auth_screen.dart` & `verification_screen.dart`:** Handle user sign-in, sign-up, and email verification flows.
+* **`auth_screen.dart` & `verification_screen.dart`:** A pair of screens that manage the entire user authentication and onboarding lifecycle. `AuthScreen` handles sign-in/sign-up logic and orchestrates the navigation to subsequent steps. `VerificationScreen` provides a waiting room for new email/password users to verify their email address before they can proceed.
+*   **`eula_acceptance_screen.dart`:** A critical screen in the new user onboarding flow. It displays the End-User License Agreement text, requires the user to formally accept the terms via a checkbox, and upon confirmation, finalizes the user's profile creation in Firestore before navigating them to the `HomeScreen`.
 *   **`image_slots_screen.dart`:** Allows users to choose one of three slots to save a generated image for a haiku.
 *   **`audio_toolkit_modal.dart`:** Modal for configuring and playing TTS audio for a haiku.
 *   **`constellation_detail_modal.dart`:** Modal to show details of a selected constellation and confirm publishing.
 *   **`constellation_customization_screen.dart`:** Allows constellation owners to generate and save AI-created fables and images, and manages the knowledge graph update workflow.
-*   **`eula_screen.dart` & `privacy_screen.dart`:** Simple, scrollable screens that display static legal text using the `markdown_widget` package.
 
 #### Reusable UI Widgets (`lib/widgets/`)
 
@@ -451,11 +456,12 @@ This directory houses custom, reusable Flutter widgets that promote UI consisten
 *   **`avatar_studio.dart`:** The central component in the `CustomizationTab` that combines the user's profile picture, a selected animated frame, and equipped flair into a single composite avatar.
 *   **`achievement_gallery.dart`:** A `GridView` that displays all possible achievements, indicating their locked/unlocked status and allowing unlocked achievements to be selected as "flair." It also defines the `AchievementData` and `FlairData` classes that serve as the source of truth for all achievements in the app.
 *   **Animated Frame Widgets (`lib/widgets/frames/`):** A collection of polymorphic, self-contained animated widgets (`CometFrameWidget`, `PrideFrameWidget`, `VineFrameWidget`, etc.) that all extend the abstract `AnimatedFrameWidget` class. Each frame manages its own `AnimationController` and `CustomPainter` to render unique, dynamic visual effects around the user's avatar. They are designed to be "smart," reacting to equipped flair by rendering burst effects or other interactive elements.
-* **Google Sign-In Web Helpers (`gsi_*.dart` & `google_sign_in_button_*.dart`):** A suite of files that implement a modern, platform-aware Google Sign-In experience. This architecture uses conditional imports to provide the official, browser-rendered Google button on the web, while seamlessly falling back to the standard `google_sign_in` plugin on mobile. This approach completely isolates web-specific code (bypassing the deprecated `dart:html` in favor of `package:web` and `dart:js_interop`) from the mobile build path, ensuring cross-platform compatibility without compromises.
-    * `google_sign_in_button_web.dart`: The web-only Flutter widget that renders the official Google button. It uses an `HtmlElementView` to host a `<div>` element, which is assigned a **unique ID** on each initialization. This strategy forces a fresh instance of the button to be created on every login screen visit, preventing "stale callback" runtime crashes that can occur after a user signs out and then attempts to sign in again.
-    * `gsi_web_helper.dart`: The web-only helper containing the JS interop logic. It calls the Google Identity Services (GSI) JavaScript library to both render the button inside the widget's `<div>` and to handle the authentication callback. It also includes the crucial `googleSignOut` function, which calls `disableAutoSelect` on the GSI library, preventing the "One Tap" prompt from causing state issues after a user has logged out.
+*   **Google Sign-In Web Helpers (`gsi_*.dart` & `google_sign_in_button_*.dart`):** A suite of files that implement a modern, platform-aware Google Sign-In experience. This architecture uses conditional imports to provide the official, browser-rendered Google button on the web, while seamlessly falling back to the standard `google_sign_in` plugin on mobile. This approach completely isolates web-specific code (bypassing the deprecated `dart:html` in favor of `package:web` and `dart:js_interop`) from the mobile build path, ensuring cross-platform compatibility without compromises.
+    * `google_sign_in_button_web.dart`: The web-only Flutter widget that renders the official Google button. It is architected with an HtmlElementView and a global callback holder (`_GsiCallbackHolder`) to robustly manage state across the full authentication lifecycle. Because the platform view factory is registered only once, this holder pattern is a deliberate design that ensures the JavaScript button's callback always invokes the method from the live, currently mounted widget instance. This proactively handles the "stale callback" scenario that can occur when a user signs out and then signs back in, guaranteeing a seamless and error-free experience
+    * `gsi_web_helper.dart`: The web-only helper containing the JS interop logic. It calls the Google Identity Services (GSI) JavaScript library to both render the button and handle the authentication callback. It also includes the crucial `googleSignOut` function, which calls `google.accounts.id.signOut()`, properly clearing the GSI session state to ensure a clean sign-out experience.
     * `google_sign_in_button_connector.dart` & `gsi_connector.dart`: A pair of conditional export "barrel" files that provide the correct platform-specific implementation (`_web` vs. `_stub`) to the rest of the application at compile time.
     * `google_sign_in_button_stub.dart` & `gsi_stub.dart`: Stub implementations for mobile that allow the app to compile by providing empty, non-functional placeholders for the web-only code.
+* **`haikuverse_logo.dart`:** A self-contained, animated logo widget prominently featured on the `AuthScreen`. It uses multiple `AnimationController`s and a `CustomPainter` to render a procedurally generated, multi-colored spirograph pattern, creating a high-fidelity and visually engaging introduction to the application.
 
 #### Application Theming System
 
@@ -616,10 +622,12 @@ This section details the journey of data through the application and the multi-l
 This section outlines the journey of data and user interactions through the Haikuverselication, providing a clear understanding of how user actions trigger specific, often asynchronous, data flows and processes across the client, backend functions, and database services.
 
 *   **App Startup and User Initialization (`main.dart`):**
-    *   The application launch triggers the `main()` function, which ensures Flutter bindings are ready before asynchronously initializing Firebase services. Key dependencies are instantiated for Dependency Injection (`SharedPreferences`, `FirebaseAuth`, custom Services). Global providers are initialized via `MultiProvider`, with relevant providers loading initial state from `SharedPreferences`. A critical `authStateChanges` listener is established in `_MyAppState`. If a user is already authenticated, this listener immediately triggers `_subscribeToFavorites(uid)` and `_subscribeToNotifications(uid)` to establish the real-time Firestore listeners. If no user is authenticated, the local `_favorites` list is cleared.
+    *   The application launch triggers the `main()` function... The root `MyApp` widget uses a `FutureBuilder` to run the `_getInitialRoute` logic once. This check validates the user's session, verifying both their Firebase Auth state and EULA status before directing them to the correct screen. A separate `authStateChanges` listener handles background data synchronization, such as subscribing to or unsubscribing from Firestore data streams when the user's login state changes during an active session. If no user is authenticated, the local `_favorites` list is cleared.
 
-*   **Authentication Flow (User Login/Signup - `AuthScreen`, `FirestoreService`, Providers):**
-    *   An unauthenticated user on the `AuthScreen` triggers the appropriate `AuthService` method. For sign-ups, `FirestoreService.createInitialUserData` creates the user's private and public Firestore documents. On successful sign-in, the `authStateChanges` listener activates the Firestore streams, and `AuthScreen` explicitly calls `reloadFromPrefs()` on providers (`ThemeProvider`, `NicknameProvider`) to load user-specific cached settings.
+* **Authentication Flow (User Onboarding & Login - `AuthScreen`, `VerificationScreen`, `EulaAcceptanceScreen`):**
+    * This flow is now orchestrated primarily within `AuthScreen` to handle the multi-step user onboarding process.
+    * **For new email/password sign-ups:** `AuthScreen` calls `AuthService` to create the user, `FirestoreService` to create their initial data documents, and `EmailVerificationService` to send a verification link. The user is then directed to the `VerificationScreen`. Here, a timer periodically checks their verification status. Once verified, they are navigated to the `EulaAcceptanceScreen`.
+    * **For existing user login (or Google Sign-In):** After successful authentication, the `_checkEulaAndNavigateAfterLogin` helper method in `AuthScreen` queries Firestore to determine the user's status and routes them to the correct screen: `/verify-email` if they haven't verified, `/eula-acceptance` if they haven't accepted the EULA, or directly to `/home` if they are fully onboarded.
 
 *   **Haiku Generation Flow (User-Driven Content Creation - `HomeScreen`, `Cloud Function`):**
     *   The user enters a prompt in `HomeScreen`. "Generate Haiku" triggers `_generateContent`, which constructs a full prompt, retrieves a Firebase ID token, and sends an authenticated HTTPS request to the `haikuBotCloud` Cloud Function. The backend validates the token, calls the Vertex AI Gemini API, and returns the haiku text. `HomeScreen` receives this response, enabling the Star Naming Toolkit, which calls the `generateStarNames` function (via `GeminiService`) for name suggestions.
@@ -773,7 +781,7 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
     * `generateHaikuAudio` (in `_MyAppState`).
     * `generateStarNames`, `generateConstellationFable`, `getTravelAdvice` (in GeminiService).
 * **Asset Verification:** Ensure all prompt templates (`.txt` files in `assets/`) and the `assets/default_profile.png` are correctly declared in `pubspec.yaml`.
-* **Google Sign-In Configuration:** The application uses a hybrid approach. For mobile (Android), it uses the standard `google_sign_in` plugin, which is initialized in `main.dart` with the `serverClientId`. For the web, it uses a direct implementation of the Google Identity Services (GSI) library, which is initialized within the web-specific helper files and does not require client-side initialization in `main.dart`.
+* **Google Sign-In Configuration:** The application uses a hybrid, platform-aware approach for Google Sign-In. For mobile (Android), it uses the standard `google_sign_in` plugin, which is initialized in `main.dart` with the `serverClientId`. For the web, it uses a direct implementation of the Google Identity Services (GSI) library to render the official, browser-native Google button. This is achieved through a set of conditional-export "barrel" files (`gsi_connector.dart`, `google_sign_in_button_connector.dart`) that isolate web-specific code (`package:web`, `dart:js_interop`) from the mobile build path, ensuring cross-platform compatibility without compromises.
 
 **d. Firestore Security Rules & Indexes:**
 
@@ -843,13 +851,13 @@ The application's user experience and social features are guided by a philosophy
 **Creator-Centric Moderation:** Unlike platforms with global, unmoderated feeds, all social interaction in the Haikuverse is contextual and controlled. The `StarDetailPopup` serves as a private salon for each creation. When a user submits a comment, it is first sanitized by a Gemini harm check and then sent to the star's owner for approval via the `NotificationsScreen`. This empowers creators with full control over the discourse surrounding their work. They can approve, reject, or even report abusive comments, which automatically blocks the user from their content and creates a moderation ticket. This architecture intentionally fosters a respectful and creative community by design, placing the power of curation in the hands of the artists themselves.
 
 ### Designed for Humans: An Invitation to Creative Discovery and Augmented Artistry
-Haikuverse is engineered as a **dynamic partner in creative exploration**, placing the human user at the very heart of an ever-unfolding journey. This guiding philosophy —**Designed for Humans**— is not an afterthought but the foundational principle shaping every architectural nuance and feature, fostering intuitive interaction, profoundly augmenting human creative potential, and championing inclusive access. It's an endeavor to ignite the spark of curiosity and make the co-creation of unique techno-poetic art an accessible, deeply personal, and endlessly engaging experience.
+The Haikuverse experience begins with a deliberate statement of quality and intent. The first thing a new user sees is not a static splash screen, but a living, breathing logo — a dynamic, procedurally generated spirograph animation that is both intricate and mesmerizing. This visual manifesto immediately signals that this is no ordinary haiku application and sets a standard for the high-fidelity, multi-sensory journey the user is about to embark on, promising an adventure where technical sophistication and creative expression are deeply intertwined from the very first moment. Haikuverse is engineered as a **dynamic partner in creative exploration**, placing the human user at the very heart of an ever-unfolding journey. This guiding philosophy —**Designed for Humans**— is not an afterthought but the foundational principle shaping every architectural nuance and feature, fostering intuitive interaction, profoundly augmenting human creative potential, and championing inclusive access. It's an endeavor to ignite the spark of curiosity and make the co-creation of unique techno-poetic art an accessible, deeply personal, and endlessly engaging experience.
 
 This **human-centric vision** blossoms within the Haikuverse, an emergent cosmos born from the user's own creativity and the app's intelligent responses. Here, constellations are not static points but vibrant, storied locales. The application's **client-side procedural generation** of these constellation graphs is a deliberate artistic choice, moving beyond mere data visualization to craft unique, aesthetically compelling vector art spaces within the `HaikuverseNavigationScreen`. Users don't just observe; they visually navigate and "zorch" through these algorithmically unique realms, each layout a subtle invitation to explore further. This design philosophy of augmenting artistry through procedural generation extends from the macrocosm of the Haikuverse to the microcosm of personal identity. The user's customizable avatar frames are not static image overlays; they are miniature simulations — procedurally generated vector art driven by their own internal logic. From the swirling particles of the Comet frame to the flocking behavior in the Ecosystem frame, each one is designed to evoke a sense of emergent, living behavior. This approach champions quality over quantity, aiming to delight and surprise the user, offering them yet another medium to reflect on the beauty of artistic self-expression in a modern digital form. This sense of personal discovery is amplified by **AI-powered semantic understanding**. As users consider publishing their haikus (PublishTab) or embark on thematic quests (ExploreTab), Vertex AI Vector Search doesn't just return matches; it unveils pathways, suggesting constellations that resonate with the nuanced meaning of their work or the articulated desires of their imagination. The Haikuverse itself breathes with an **evolving fable-driven knowledge graph**, where AI-generated narratives for each constellation are embedded and interconnected based on thematic similarity. This is complemented by the **Zeitgeist Engine**, which analyzes community-wide creative activity to produce a dynamic "word cloud" of trending themes in the ExploreTab. This feature, rendered as an interactive spiral of floating words via the ZeitgeistMap widget, offers an intuitive, at-a-glance understanding of the community's collective consciousness, inviting users to explore popular concepts. This multi-faceted approach—combining personalized recommendations with community trends—invites **progressive discovery**, where one story can lead to another and one theme can unfold into a tapestry of related ideas, making exploration itself a creative act.
 
 The augmentation of human creativity is not a passive bestowal of content but an active collaboration. Within the `ConstellationCustomizationScreen`, users become co-authors of their Haikuverse, working with Gemini (via `GeminiService`) to weave evocative fables and with Imagen 3 (via `VertexAIService`) to conjure visual representations, transforming abstract collections of haikus into deeply personal, mythic territories. This act of giving story and image to their creations fosters a profound sense of ownership and connection. The addition of **Google Cloud Text-to-Speech**, experienced through the `AudioToolkitModal`, further enriches this, allowing the user's poetic voice to take literal form, adding another layer of sensory engagement and accessibility.
 
-Every interaction is crafted to minimize friction and maximize creative momentum, nurturing **cognitive flow and intuitive engagement.** The straightforward `HomeScreen` prompt, the immediate yet unobtrusive feedback during asynchronous AI operations, the unambiguous `FavoriteButton`, the tactile tap-to-navigate gestures within the `MiniConstellationGraphView`, and the intelligently guided publishing flow—all are designed to feel like natural extensions of the user's creative intent. The `StarDetailPopup`, with its synchronized audio-visual "full experience" playback, is a microcosm of this design: an immersive dive into a single creative moment, presented effortlessly.
+Every interaction is crafted to minimize friction and maximize creative momentum, nurturing **cognitive flow and intuitive engagement.** The straightforward `HomeScreen` prompt, the immediate yet unobtrusive feedback during asynchronous AI operations, the unambiguous `FavoriteButton`, the tactile tap-to-navigate gestures within the `MiniConstellationGraphView`, and the intelligently guided publishing flow—all are designed to feel like natural extensions of the user's creative intent. The `StarDetailPopup`, with its synchronized audio-visual "full experience" playback, is a microcosm of this design: an immersive dive into a single creative moment, presented effortlessly. This commitment to a frictionless experience extends even to the application's entry points. Recognizing that user preference is paramount, significant engineering effort was invested to create a hybrid, platform-aware authentication system. This provides users with the seamless, one-tap convenience of the official Google Sign-In experience on the web, while using the standard mobile plugin for Android — a complex implementation undertaken solely to respect the user's choice and make their first interaction with the app as effortless as possible.
 
 **Accessibility and inclusivity** are integral, not addons. `Semantics` widgets provide vital context for assistive technologies, `SelectableText` ensures content is portable, and the planned image-to-text features will further broaden access. Diverse TTS voices acknowledge and cater to varied preferences. Even **nickname validation**, while a security measure, contributes to a respectful and welcoming community space, inviting users to express their identity thoughtfully.
 
