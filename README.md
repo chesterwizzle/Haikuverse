@@ -305,7 +305,7 @@ This file serves as the primary entry point and central orchestrator of the Flut
     * `_isFavorite(String haikuText)`: Checks if a haiku text exists in the local `_favorites` list.
     * `_removeFavorite(Haiku haiku)`: Explicitly removes a haiku from Firestore via `firestoreService.removeFavorite`. Also triggers deletion of the star from the public `/published_stars` collection and its Vector Search index via `firestoreService.triggerDeletePublishedStarFunction`. Manages Storage cleanup and `IndexProvider` adjustments.
     * `_associateImageUrlToHaiku(String haikuId, String newImageUrl, int slotIndex)`: Saves an image URL to a specific haiku in Firestore via `firestoreService.updateFavorite`. Manages deletion of any overwritten image from Storage (via `storageService`) and updates `CurrentImageProvider`.
-    * `_triggerAudioGeneration(Haiku haiku, String voiceName, double speakingRate)`: Orchestrates audio generation by calling the `generateHaikuAudio` Cloud Function (via authenticated `httpClient` request), then updates the Haiku document in Firestore with the new audio metadata.
+    * `_triggerAudioGeneration(Haiku haiku, String voiceName, double speakingRate)`: Orchestrates audio generation by calling `firestoreService.triggerGenerateHaikuAudio()`, which handles the secure Cloud Function invocation. It then updates the local state for immediate UI feedback.
     * `dispose()`: Cancels `_authStateSubscription`, `_favoritesSubscription`, and closes the `httpClient`.
 
 * **Root Application UI Structure (`MaterialApp` Widget):**
@@ -513,6 +513,7 @@ This layer abstracts interactions with Firebase, Google Cloud services, and back
         *   `triggerSaveConstellationCustomizations` (calls `saveConstellationCustomizations` CF).
         *   `getThemeBasedConstellationRecommendations` (calls `getThemeBasedConstellationRecommendations` CF for Explore Tab).
         *   `getFollowersDetails` (calls `getFollowersDetails` CF).
+        *   `triggerGenerateHaikuAudio` (calls `generateHaikuAudio` CF).
     *   **Like Management:** `getStarLikeCountStream` (real-time like count), `hasUserLikedStar`, `likeStar`, `unlikeStar`.
     *   **Comment Management:**
         *   `getStarCommentsStream` (real-time, paginated stream for approved comments).
@@ -540,11 +541,11 @@ This layer abstracts interactions with Firebase, Google Cloud services, and back
     *   Uses an injected `http.Client`.
 
 *   **`storage_service.dart` (`StorageService`):**
-    *   **Purpose:** Encapsulates Firebase Storage operations for uploading and deleting files (images, audio).
-    *   **Methods:**
-        *   `uploadImageData(Uint8List data, String path, String contentType)`: Uploads image data.
-        *   `deleteFileByUrl(String? fileUrl)`: Deletes any file (image or audio) from Storage given its download URL. Handles `gs://` and `https://firebasestorage.googleapis.com` URLs.
-    *   Used by `StarsScreen` (via `_MyAppState`) for generated haiku images, `PreferencesScreen` for profile pictures, `_MyAppState` for audio file cleanup, and `ConstellationCustomizationScreen` for fable images.
+    * **Purpose:** Encapsulates Firebase Storage operations for uploading and deleting files (images, audio).
+    * **Methods:**
+        * `uploadImageData(Uint8List data, String path, String contentType)`: Uploads image data.
+        * `deleteFileByUrl(String? fileUrl)`: Deletes any file (image or audio) from Storage given its download URL. Handles `gs://` and `https://firebasestorage.googleapis.com` URLs.
+    * Used by `StarsScreen` (via `_MyAppState`) for generated haiku images, `PreferencesScreen` for profile pictures, `_MyAppState` for audio file cleanup, and `ConstellationCustomizationScreen` for fable images.
 
 *   **`vertex_ai_service.dart` (`VertexAIService`):**
     *   **Purpose:** Encapsulates direct client-side calls to the Firebase Vertex AI SDK, specifically for Imagen 3 image generation.
@@ -563,7 +564,7 @@ The application uses the `provider` package for managing application-wide state 
 * **`signout_provider.dart` (`SignOutProvider`):** Handles the asynchronous sign-out process, tracking loading state and error messages.
 * **`auth_email_provider.dart` (`AuthEmailProvider`):** Provides reactive access to the currently authenticated user's email address.
 * **`current_image_provider.dart` (`CurrentImageProvider`):** Tracks the last viewed image URL and its saved/unsaved status for each haiku (persisted to `SharedPreferences` with user-specific keys), primarily for `StarsScreen` UI.
-* **`audio_player_provider.dart` (`AudioPlayerProvider`):** Manages a shared instance of `AudioPlayer` (`just_audio`) for global audio playback control (play, pause, stop, load URL, seek). Exposes player state (isPlaying, isLoading, duration, position) for UI updates.
+* **`audio_player_provider.dart` (`AudioPlayerProvider`):** Manages a shared instance of `AudioPlayer` (`just_audio`) for global audio playback control. It now supports direct, efficient streaming from secure signed URLs, a critical refactor that improves performance, reduces memory usage, and ensures cross-platform compatibility for both mobile and web. It exposes player state (isPlaying, isLoading, duration, position) for UI updates.
 
 ### 3.6 Backend Logic (`functions/index.js` - Google Cloud Functions)
 
@@ -573,7 +574,7 @@ The server-side logic is implemented as a suite of Google Cloud Functions (deplo
     *   `haikuBotCloud` (HTTP): Securely generates haikus using Vertex AI Gemini.
     *   `generateConstellationFable` (HTTP): Generates thematic fables for constellations using Vertex AI Gemini.
     *   `getTravelAdvice` (HTTP): Provides AI-generated travel advice for constellations in the `ExploreTab`.
-    *   `generateHaikuAudio` (HTTP, v2): Synthesizes speech from haiku text using Google Cloud Text-to-Speech, uploads the MP3 to Storage, and updates Firestore with the audio URL and metadata.
+    *   `generateHaikuAudio` (HTTP, v2): Synthesizes speech from haiku text using Google Cloud Text-to-Speech, uploads the MP3 to Storage, and updates Firestore with a secure, long-lived signed URL and associated metadata.
     *   `suggestConstellationNames` (HTTP): Generates creative name suggestions for new constellations using Gemini.
     *   `generateStarNames` (HTTP, v2): Generates unique star name suggestions based on haiku text.
 
@@ -625,10 +626,10 @@ This section outlines the journey of data and user interactions through the Haik
 *   **App Startup and User Initialization (`main.dart`):**
     *   The application launch triggers the `main()` function... The root `MyApp` widget uses a `FutureBuilder` to run the `_getInitialRoute` logic once. This check validates the user's session, verifying both their Firebase Auth state and EULA status before directing them to the correct screen. A separate `authStateChanges` listener handles background data synchronization, such as subscribing to or unsubscribing from Firestore data streams when the user's login state changes during an active session. If no user is authenticated, the local `_favorites` list is cleared.
 
-* **Authentication Flow (User Onboarding & Login - `AuthScreen`, `VerificationScreen`, `EulaAcceptanceScreen`):**
-    * This flow is now orchestrated primarily within `AuthScreen` to handle the multi-step user onboarding process.
-    * **For new email/password sign-ups:** `AuthScreen` calls `AuthService` to create the user, `FirestoreService` to create their initial data documents, and `EmailVerificationService` to send a verification link. The user is then directed to the `VerificationScreen`. Here, a timer periodically checks their verification status. Once verified, they are navigated to the `EulaAcceptanceScreen`.
-    * **For existing user login (or Google Sign-In):** After successful authentication, the `_checkEulaAndNavigateAfterLogin` helper method in `AuthScreen` queries Firestore to determine the user's status and routes them to the correct screen: `/verify-email` if they haven't verified, `/eula-acceptance` if they haven't accepted the EULA, or directly to `/home` if they are fully onboarded.
+*   **Authentication Flow (User Onboarding & Login - `AuthScreen`, `VerificationScreen`, `EulaAcceptanceScreen`):**
+    *   This flow is now orchestrated primarily within `AuthScreen` to handle the multi-step user onboarding process.
+    *   **For new email/password sign-ups:** `AuthScreen` calls `AuthService` to create the user, `FirestoreService` to create their initial data documents, and `EmailVerificationService` to send a verification link. The user is then directed to the `VerificationScreen`. Here, a timer periodically checks their verification status. Once verified, they are navigated to the `EulaAcceptanceScreen`.
+    *   **For existing user login (or Google Sign-In):** After successful authentication, the `_checkEulaAndNavigateAfterLogin` helper method in `AuthScreen` queries Firestore to determine the user's status and routes them to the correct screen: `/verify-email` if they haven't verified, `/eula-acceptance` if they haven't accepted the EULA, or directly to `/home` if they are fully onboarded.
 
 *   **Haiku Generation Flow (User-Driven Content Creation - `HomeScreen`, `Cloud Function`):**
     *   The user enters a prompt in `HomeScreen`. "Generate Haiku" triggers `_generateContent`, which constructs a full prompt, retrieves a Firebase ID token, and sends an authenticated HTTPS request to the `haikuBotCloud` Cloud Function. The backend validates the token, calls the Vertex AI Gemini API, and returns the haiku text. `HomeScreen` receives this response, enabling the Star Naming Toolkit, which calls the `generateStarNames` function (via `GeminiService`) for name suggestions.
@@ -639,8 +640,8 @@ This section outlines the journey of data and user interactions through the Haik
 *   **Image Generation & Association Workflow (User Action -> `StarsScreen` -> Vertex AI SDK -> Storage -> `main.dart` -> Firestore -> Stream Update):**
     *   In `StarsScreen`, "Generate Image" calls `VertexAIService` (client-side Imagen 3 SDK). `StorageService` uploads the resulting image bytes to Storage. The returned URL is tracked by `CurrentImageProvider` as unsaved. On save, `_associateImageUrlToHaiku` in `_MyAppState` calls `FirestoreService.updateFavorite` to persist the new URL to the `Haiku` document in Firestore and notifies `CurrentImageProvider` to mark the image as saved.
 
-*   **Text-to-Speech Audio Generation (`FavoritesScreen`, `_MyAppState`, `Cloud Function`):**
-    *   From the `AudioToolkitModal`, `_triggerAudioGeneration` in `_MyAppState` sends an authenticated request to the `generateHaikuAudio` Cloud Function. The backend calls Google Cloud Text-to-Speech, uploads the MP3 to Storage, and atomically updates both the private favorite and public star (if it exists) in Firestore with the new audio metadata. The public URL is returned to the client for playback.
+*   **Text-to-Speech Audio Generation (`FavoritesScreen`, `_MyAppState`, `FirestoreService`):**
+    * From the `AudioToolkitModal`, the `onGenerateAudioRequested` callback invokes `_triggerAudioGeneration` in `_MyAppState`. This method calls `firestoreService.triggerGenerateHaikuAudio`, abstracting the direct network call. The service sends an authenticated request to the `generateHaikuAudio` Cloud Function. The backend calls Google Cloud Text-to-Speech, uploads the MP3 to Storage, generates a secure signed URL, and atomically updates Firestore. The signed URL is returned all the way back to the client for direct, efficient streaming playback.
 
 *   **User Profile & Customization Update (`SettingsTab`, `CustomizationTab`, `Cloud Functions`):**
     *   In `SettingsTab`, "Save Changes" triggers `_saveUserProfile`, which calls the `sanitizeNickname` Cloud Function for server-side validation. If safe, it updates the user's profile and favorites in Firestore. Image updates trigger the `sanitizeProfileImage` Cloud Function. In `CustomizationTab`, selecting a frame or flair directly calls `FirestoreService.updateUserCustomizations`, which updates the `selectedFrameId` or `selectedFlair` fields in the user's `public_profile` document.
@@ -662,7 +663,7 @@ The Haikuverselication employs a comprehensive security architecture built upon 
 *   **Core Security Mechanism: Firebase ID Token Verification:**
     *   All HTTP-triggered Cloud Functions use the Firebase Admin SDK to validate the client-sent Firebase ID token in the `Authorization` header. If verification fails, the function immediately returns a `401 Unauthorized` response, preventing any further execution.
 
-    * **Application Attestation with Firebase App Check:** As an additional security layer, the application integrates Firebase App Check. On Android, it uses the **Play Integrity API**, and on the web, it uses **reCAPTCHA Enterprise** to attest that backend requests originate from a genuine and untampered instance of your application. This helps protect backend resources from abuse, such as billing fraud or phishing, by blocking traffic that doesn't have valid credentials, complementing the user-level security of Firebase ID tokens.
+    *   **Application Attestation with Firebase App Check:** As an additional security layer, the application integrates Firebase App Check. On Android, it uses the **Play Integrity API**, and on the web, it uses **reCAPTCHA Enterprise** to attest that backend requests originate from a genuine and untampered instance of your application. This helps protect backend resources from abuse, such as billing fraud or phishing, by blocking traffic that doesn't have valid credentials, complementing the user-level security of Firebase ID tokens.
 
 *   **Defense in Depth (Granular Security Rules & Limited Blast Radius):**
     *   **Cloud Firestore Security Rules:**
@@ -674,10 +675,11 @@ The Haikuverselication employs a comprehensive security architecture built upon 
         *   Comment Moderation: Rules ensure users can only read `approved` comments. Writing is handled by the `submitStarComment` function, editing is restricted to the author while `pending_approval`, and deleting is restricted to the author or the star's owner.
         *   `/feedback/{userId}`: A user can only access their own feedback document and its subcollections.
 
-    *   **Firebase Storage Security Rules:**
-        *   Profile images (`/profile_images/{uid}/...`): Publicly readable, writable/deletable only by the owner.
-        *   Generated haiku/fable images & audio files: Publicly readable, writable/deletable only by the owner or secure backend functions.
-        *   Temporary Uploads: Writable only by the owner, not client-readable, accessed server-side by sanitization functions.
+*   **Firebase Storage Security & Access Model:**
+    *   The Storage bucket is configured for **Uniform Bucket-Level Access**, disabling legacy, per-object Access Control Lists (ACLs) in favor of a modern, IAM-based security model. This is a critical prerequisite for supporting modern web security standards.
+    *   **CORS Configuration:** A `cors.json` configuration is applied to the bucket, allowing `GET` requests from the application's web origins (`haiku-bot-advanced.web.app` and `localhost`). This is essential for the browser to load Storage assets (like images and audio) without being blocked by Cross-Origin policies enforced by the COEP/CORP headers required for Google Sign-In on the web.
+    *   **Access via Signed URLs:** Client-side access to non-public files (like user-generated audio) is granted exclusively through **secure, long-lived signed URLs**. These are generated on-demand by backend Cloud Functions (e.g., `generateHaikuAudio`) and stored in Firestore. This method allows the client to stream content efficiently and securely without requiring public read access on the objects themselves.
+    *   **Security Rules:** While access is primarily managed by IAM and signed URLs, Storage Security Rules provide a final layer of defense-in-depth, restricting direct write/delete access to authenticated owners for their respective paths (e.g., `/profile_images/{uid}/`, `/haiku_audio/{uid}/`).
 
 *   **Vertex AI and GCP API Security (Service Account & OAuth):**
     *   Backend Cloud Functions use a Google Cloud service account and the `google-auth-library` to obtain short-lived OAuth 2.0 access tokens for secure, server-to-server communication with GCP APIs like Vertex AI and Text-to-Speech. No API keys are exposed.
@@ -779,7 +781,7 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
     * `haikuBotCloud` (in `HomeScreen` or its service for haiku generation).
     * `sanitizeProfileImage`, `sanitizeNickname` (in `PreferencesScreen` or its service).
     * `generateConstellationRecommendations`, `publishStar`, `deletePublishedStar`, `saveConstellationCustomizations`, `getThemeBasedConstellationRecommendations`, `getFollowedConstellations` (typically in FirestoreService).
-    * `generateHaikuAudio` (in `_MyAppState`).
+    * `generateHaikuAudio` ( in `FirestoreService`).
     * `generateStarNames`, `generateConstellationFable`, `getTravelAdvice` (in GeminiService).
 * **Asset Verification:** Ensure all prompt templates (`.txt` files in `assets/`) and the `assets/default_profile.png` are correctly declared in `pubspec.yaml`.
 * **Google Sign-In Configuration:** The application uses a hybrid, platform-aware approach for Google Sign-In. For mobile (Android), it uses the standard `google_sign_in` plugin, which is initialized in `main.dart` with the `serverClientId`. For the web, it uses a direct implementation of the Google Identity Services (GSI) library to render the official, browser-native Google button. This is achieved through a set of conditional-export "barrel" files (`gsi_connector.dart`, `google_sign_in_button_connector.dart`) that isolate web-specific code (`package:web`, `dart:js_interop`) from the mobile build path, ensuring cross-platform compatibility without compromises.
