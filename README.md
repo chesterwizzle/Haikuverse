@@ -273,6 +273,8 @@ end
 ---
 ## 3. Core Architecture & Services
 
+The Haikuverse application is built on a modern, scalable technology stack leveraging the Flutter framework for the front end and Google Cloud services for the backend. The table below provides a high-level overview of the key technologies employed in each architectural layer.
+
 | Layer                  | Technology / Service                                                                                                   |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **Cross-Platform App** | Flutter, Dart, Provider                                                                                                |
@@ -283,8 +285,7 @@ end
 | **Generative AI**      | **Vertex AI**: Gemini (Text), Imagen 3 (Images), Text-to-Speech, Embedding API                                         |
 | **Semantic Search**    | Vertex AI Vector Search                                                                                                |
 
-The following sections provide a detailed breakdown of the application's core components, organized to mirror the logical layers presented in the functional block diagram. This top-down exploration begins with the central application orchestrator and moves through the user interface, data modeling, service abstractions, and backend logic.
-
+The following sections provide a detailed breakdown of the application's core components, organized to mirror these logical layers. This top-down exploration begins with the central application orchestrator and moves through the user interface, data modeling, service abstractions, and backend logic.
 
 ### 3.1 Application Core (`main.dart`)
 
