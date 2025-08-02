@@ -13,12 +13,23 @@ This document offers a comprehensive technical deep-dive into Haikuverse's archi
 
 ### Key Features:
 
-* **AI-Powered Creativity**: Generate evocative haiku poems with **Google Gemini**, visualize them with stunning imagery from **Imagen 3**, and bring them to life with dynamic **Text-to-Speech** narrations.
-* **Interactive Constellation Graphs**: Explore the community's creations through a unique, **procedurally generated** 2D vector-art universe.
-* **Dynamic Visual Progression**: Stars visually evolve with community engagement, gaining unique sizes, colors, and special corona effects based on the positive responses.
-* **Semantic Discovery Engine**: Uncover thematically linked content with a sophisticated **Vertex AI Vector Search** backend that powers recommendations and a dynamic Knowledge Graph.
-* **Deep Personalization**: Customize a unique avatar with animated frames and flair, follow favorite poets, and unlock achievements.
-* **Non-Toxic by Design**: A social experience centered on creator-controlled moderation and thoughtful interaction.
+* **Designed for Humans:** Haikuverse is architected as a cohesive creative experience designed to elevate human dignity, democratize access to powerful AI, and unleash creativity. The application serves as a dynamic partner in creative exploration, augmenting human artistry rather than replacing it. From the intuitive interface to the creator-centric controls, the entire experience is crafted to foster a rewarding community and maximize the inherent human delight in discovery and self-expression.
+
+* **Secure & Resilient Without Compromise:** The application is built on a scalable serverless backend using **Google Cloud Functions** and **Firestore**. Security is paramount, enforced through **Firebase App Check** attestation and a data model that strictly segregates private and public user data. The system even includes self-healing maintenance functions for its `Knowledge Graph`, designed for long-term data integrity and resilience.
+
+* **Co-Create Techno-Poetic Art:** Guide powerful AI partners (**Gemini**, **Imagen 3**, and **Text-to-Speech**) to transform your creative spark into multi-sensory experiences. Move beyond simple generation to augment your artistry, weaving evocative haiku, stunning visuals, and dynamic audio narrations into a unified whole.
+
+* **Forge Your Unique Poet's Identity:** This is your stage. Define your public persona by curating and publishing your finest multi-sensory experiences. Personalize your avatar with a selection of animated frames, and showcase unique flair unlocked by your creative achievements. Cultivate a following, connect with poets who inspire you, and become a celebrated voice within the Haikuverse.
+
+* **Explore a Living Universe of Poetry:** Navigate a unique, procedurally generated vector-art cosmos where every star is a poem waiting to be discovered. This is not a static gallery; it's an emergent universe that responds to you. Watch as stars visually evolve with community appreciation, gaining vibrancy and unique coronas that reflect their shared impact.
+
+* **Cultivate Your Creative Sanctuary:** Haikuverse is a collection of creative sanctuaries. Its powerful anti-toxicity tools proactively screen public content using Google Gemini's powerful safety filters, empowering poets to cultivate respectful conversations and foster genuine connection by design.
+
+* **Democratized Moderation:** Community safety is a shared responsibility. Every user has private, non-retaliatory channels to report abuse or provide direct feedback, creating a secure audit trail for administrative review without fear of reprisal.
+
+* **Uncover a Deeper Web of Meaning:** Journey beyond simple keyword searches with a semantic discovery engine powered by **Vertex AI Vector Search**. This system doesn't just find content; it reveals the invisible, thematic threads that connect poems and fables, building a dynamic knowledge graph that invites you to get lost in a universe of interconnected ideas.
+
+* **Tap into the Collective Consciousness:** Discover what inspires the community through the `Zeitgeist Engine`. This unique feature analyzes creative activity across the platform to reveal trending themes, offering a real-time glimpse into the evolving pulse of the Haikuverse and providing new avenues for your own creative exploration.
 
 ---
 ## 2. Functional Block Diagram of the Haikuverse App
