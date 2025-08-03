@@ -184,7 +184,6 @@ end
         ImagenAPI[("Imagen API")]
         EmbeddingAPI[("Embedding API")]
         VectorSearchAPI[("Vector Search API")]
-        VisionAPI[("Vision API")]
         TextToSpeechAPI[("Text-to-Speech API")]
     end
  end
@@ -192,7 +191,7 @@ end
 %% ---------------------------------------------------------------------------
 %% Style Assignments using the 'style' command
 %% ---------------------------------------------------------------------------
-  style main_dart fill:#f8f8ff,stroke:#4b0082,stroke-width:3px
+  style main_dart fill:#f8f8ff,stroke:# b0082,stroke-width:3px
   style UIScreens stroke:#4b0082,stroke-width:3px
   style ClientServices fill:#f8f8ff,stroke:#4b0082,stroke-width:3px
   style Backend stroke:#4b0082,stroke-width:3px
@@ -266,7 +265,6 @@ end
   CloudFunctionsBackend -- "Use" --> CloudAPIs
   ContentGenFuncs <--> GeminiAPI
   ContentGenFuncs <--> TextToSpeechAPI
-  SanitizationFuncs <--> VisionAPI
   SanitizationFuncs <--> GeminiAPI
   PublishingFuncs <--> VectorSearchAPI
   PublishingFuncs <--> EmbeddingAPI
@@ -767,13 +765,13 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
     * Firebase Storage.
     * Firebase App Check (with Play Integrity for Android and reCAPTCHA Enterprise for Web).
 * **Enabled Google Cloud APIs:** In your Google Cloud project, ensure the following APIs are enabled:
-    * Vertex AI API (for Gemini, Imagen, Embedding API, Vector Search).
-    * Cloud Vision API (for profile image safety checks).
+    * Vertex AI API (for Gemini, Imagen, Embedding API, Vector Search, and content safety checks).
     * Google Cloud Text-to-Speech API.
     * Cloud Build API (usually enabled automatically for Functions deployment).
     * Identity Toolkit API (usually enabled automatically for Firebase Auth).
     * Cloud Functions API.
     * Cloud Scheduler API (for `zeitgeistEngineScheduled`).
+
 * **Vertex AI Vector Search Indices & Endpoints:** Two primary deployed Vertex AI Vector Search Indices and their corresponding public Index Endpoints must be configured in your Google Cloud Project:
     1.  **Published Stars/Haikus Index:** Used for recommending constellations during haiku publishing.
     2.  **Constellation Fables Index:** Used for building the semantic knowledge graph and theme-based discovery in the Explore Tab.
