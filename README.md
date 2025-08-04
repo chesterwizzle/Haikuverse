@@ -77,6 +77,8 @@ flowchart LR
     end
     subgraph StarsScreenDef["StarsScreen"]
       ImagePairingUI["Image Pairing UI & Logic"]
+      ReorderUI["Reorder Slideshow UI"]
+      ImageSlotsUI["Image Save Slots UI"]
     end
     subgraph ConstellationsScreenDef["Constellations Hub"]
       PublishTab["Publish Tab"]
@@ -230,6 +232,7 @@ end
   FavoritesScreenDef -- "Plays audio via" --> GlobalProviders
   StarsScreenDef -- "Generates images via" <--> VertexAIServiceFlutter
   StarsScreenDef -- "Saves images via" <--> StorageServiceFlutter
+  ImagePairingUI -- "Launches" --> ReorderUI & ImageSlotsUI
   
   %% Connections for Preferences Screen
   SettingsTab -- "Manages profile via" <--> FirestoreServiceFlutter
@@ -379,12 +382,13 @@ These are the primary top-level screens accessible via the bottom navigation bar
         *   Audio: `onGenerateAudioRequested` callback (via `AudioToolkitModal`) triggers `_MyAppState._triggerAudioGeneration`.
 
 *   **`stars_screen.dart` - AI Image Pairing and Favorite Exploration Interface:**
-    *   **Purpose:** Enables users to generate and associate AI-powered images (Imagen 3 via `VertexAIService`) with their favorite haikus.
-    *   **Key UI:** Three-column layout with navigation arrows. Central column displays the current haiku, its associated image, and image save slots.
-    *   **Logic:**
-        *   Uses `IndexProvider` for navigation and `CurrentImageProvider` for local image state tracking.
-        *   Image Generation: Calls the injected `VertexAIService.generateImages()`. Uploads image bytes to Firebase Storage via `StorageService`.
-        *   Image Saving: Navigates to `ImageSlotsScreen`. On confirmation, `_MyAppState._associateImageUrlToHaiku` is called.
+    * **Purpose:** Enables users to generate and associate AI-powered images (Imagen 3 via `VertexAIService`) with their favorite haikus and manage the slideshow order.
+    * **Key UI:** Three-column layout with navigation arrows. Central column displays the current haiku, its associated image, and image save slots. Includes a link to the reordering screen.
+    * **Logic:**
+        * Uses `IndexProvider` for navigation and `CurrentImageProvider` for local image state tracking.
+        * Image Generation: Calls the injected `VertexAIService.generateImages()`. Uploads image bytes to Firebase Storage via `StorageService`.
+        * Image Saving: Navigates to `ImageSlotsScreen`. On confirmation, `_MyAppState._associateImageUrlToHaiku` is called.
+        * Image Reordering: Launches `ReorderImagesScreen` to allow users to drag-and-drop their three images into a new order for the slideshow.
 
 *   **`constellations_screen.dart` - Haikuverse Community Hub & Constellation Management:**
     *   **Purpose:** Main hub for publishing haikus, managing owned constellations, and exploring the Haikuverse.
@@ -465,6 +469,7 @@ These components provide focused UIs for specific tasks or display contextual in
 * **`auth_screen.dart` & `verification_screen.dart`:** A pair of screens that manage the entire user authentication and onboarding lifecycle. `AuthScreen` handles sign-in/sign-up logic and orchestrates the navigation to subsequent steps. `VerificationScreen` provides a waiting room for new email/password users to verify their email address before they can proceed.
 *   **`eula_acceptance_screen.dart`:** A critical screen in the new user onboarding flow. It displays the End-User License Agreement text, requires the user to formally accept the terms via a checkbox, and upon confirmation, finalizes the user's profile creation in Firestore before navigating them to the `HomeScreen`.
 *   **`image_slots_screen.dart`:** Allows users to choose one of three slots to save a generated image for a haiku.
+*   **`reorder_images_screen.dart`:** Provides a simple drag-and-drop interface for users to change the display order of the three images associated with a haiku for its slideshow.
 *   **`audio_toolkit_modal.dart`:** Modal for configuring and playing TTS audio for a haiku.
 *   **`constellation_detail_modal.dart`:** Modal to show details of a selected constellation and confirm publishing.
 *   **`constellation_customization_screen.dart`:** Allows constellation owners to generate and save AI-created fables and images, and manages the knowledge graph update workflow.
@@ -616,7 +621,7 @@ The server-side logic is implemented as a suite of Google Cloud Functions (deplo
     *   `generateConstellationRecommendations` (HTTP, v2): Recommends existing constellations for publishing by embedding haiku text and querying the "published stars" Vector Search index.
     *   `getThemeBasedConstellationRecommendations` (HTTP, v2): Recommends constellations for discovery by embedding a user's theme prompt and querying the "fables" Vector Search index.
     *   `publishStar` (HTTP, v2): Publishes a haiku to a constellation. Atomically updates Firestore documents, embeds the haiku text, and upserts the result into the "published stars" Vector Search index. Also awards achievements.
-    *   `deletePublishedStar` (HTTP, v2): Removes a published haiku. Atomically updates Firestore (decrementing counts, handling ownership transfer, deleting empty constellations), and removes the corresponding datapoint from both the "published stars" and "fables" (if applicable) Vector Search indices.
+    *   `deletePublishedStar` (HTTP, v2): Removes a published haiku. Atomically updates Firestore (decrementing counts, handling ownership transfer, deleting empty constellations), removes the corresponding datapoint from the Vector Search index, and performs a final, fault-tolerant sync to clear the `constellationId` from the user's private favorite document, ensuring data consistency across the application.
 
 *   **Knowledge Graph & Customization Persistence**
     *   `saveConstellationCustomizations` (HTTP, v2): A synchronous, RPC-style endpoint that saves a constellation's fable/image to Firestore, deletes old assets from Storage, upserts the new fable embedding to the "fables" Vector Search index, queries for semantic neighbors, and updates the constellation's `semanticNeighborIds` list, returning the final neighbor list directly to the client.
@@ -672,7 +677,7 @@ This section outlines the journey of data and user interactions through the Haik
     *   Tapping the `FavoriteButton` invokes `_toggleFavorite(haiku)` in `_MyAppState`. This method calls the appropriate `FirestoreService` method (`addFavorite` or `removeFavorite`). For removals, it also triggers the `deletePublishedStar` Cloud Function and initiates the deletion of associated images and audio files from Storage. Critically, `_toggleFavorite` does *not* manually alter the local `_favorites` list. The UI updates reactively via the Firestore stream established by `_subscribeToFavorites`.
 
 *   **Image Generation & Association Workflow (User Action -> `StarsScreen` -> Vertex AI SDK -> Storage -> `main.dart` -> Firestore -> Stream Update):**
-    *   In `StarsScreen`, "Generate Image" calls `VertexAIService` (client-side Imagen 3 SDK). `StorageService` uploads the resulting image bytes to Storage. The returned URL is tracked by `CurrentImageProvider` as unsaved. On save, `_associateImageUrlToHaiku` in `_MyAppState` calls `FirestoreService.updateFavorite` to persist the new URL to the `Haiku` document in Firestore and notifies `CurrentImageProvider` to mark the image as saved.
+    * In `StarsScreen`, "Generate Image" calls `VertexAIService` (client-side Imagen 3 SDK). `StorageService` uploads the resulting image bytes to Storage. The returned URL is tracked by `CurrentImageProvider` as unsaved. On save, `_associateImageUrlToHaiku` in `_MyAppState` calls `FirestoreService.updateFavorite` to persist the new URL to the `Haiku` document in Firestore and notifies `CurrentImageProvider` to mark the image as saved. Additionally, users can launch the `ReorderImagesScreen` to visually drag and drop their three saved images into a new order, which is then persisted back to the `Haiku` document in Firestore via the `_saveReorderedImages` callback in `_MyAppState`.
 
 *   **Text-to-Speech Audio Generation (`FavoritesScreen`, `_MyAppState`, `FirestoreService`):**
     * From the `AudioToolkitModal`, the `onGenerateAudioRequested` callback invokes `_triggerAudioGeneration` in `_MyAppState`. This method calls `firestoreService.triggerGenerateHaikuAudio`, abstracting the direct network call. The service sends an authenticated request to the `generateHaikuAudio` Cloud Function. The backend calls Google Cloud Text-to-Speech, uploads the MP3 to Storage, generates a secure signed URL, and atomically updates Firestore. The signed URL is returned all the way back to the client for direct, efficient streaming playback.
@@ -712,6 +717,7 @@ The Haikuverselication employs a comprehensive security architecture built upon 
 *   **Firebase Storage Security & Access Model:**
     *   The Storage bucket is configured for **Uniform Bucket-Level Access**, disabling legacy, per-object Access Control Lists (ACLs) in favor of a modern, IAM-based security model. This is a critical prerequisite for supporting modern web security standards.
     *   **CORS Configuration:** A `cors.json` configuration is applied to the bucket, allowing `GET` requests from the application's web origins (`haiku-bot-advanced.web.app` and `localhost`). This is essential for the browser to load Storage assets (like images and audio) without being blocked by Cross-Origin policies enforced by the COEP/CORP headers required for Google Sign-In on the web.
+    *   **Web Security Policy (COEP/CORP):** The web app's security model is intentionally designed to support modern features like Google's GSI library by serving a `Cross-Origin-Embedder-Policy` (COEP) header. A deliberate architectural decision was made to set this policy to `credentialless` to proactively manage the known interaction between this security requirement and Firebase Storage's default behavior (which lacks a `CORP` header). This configuration is optimal for Haikuverse, as it securely instructs browsers to request the app's public audio and image assets without credentials, aligning perfectly with the application's public media model.
     *   **Access via Signed URLs:** Client-side access to non-public files (like user-generated audio) is granted exclusively through **secure, long-lived signed URLs**. These are generated on-demand by backend Cloud Functions (e.g., `generateHaikuAudio`) and stored in Firestore. This method allows the client to stream content efficiently and securely without requiring public read access on the objects themselves.
     *   **Security Rules:** While access is primarily managed by IAM and signed URLs, Storage Security Rules provide a final layer of defense-in-depth, restricting direct write/delete access to authenticated owners for their respective paths (e.g., `/profile_images/{uid}/`, `/haiku_audio/{uid}/`).
 
