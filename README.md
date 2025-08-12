@@ -305,7 +305,7 @@ The Haikuverse application is built on a modern, scalable technology stack lever
 
 | Layer                  | Technology / Service                                                                                                   |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Cross-Platform App** | Flutter, Dart, Provider, share_plus (Native OS Share Sheet)                                                                                                 |
+| **Cross-Platform App** | Flutter, Dart, Provider, share_plus (Native OS Share Sheet)                                                            |
 | **Authentication**     | Firebase Authentication, Google Sign-In (GSI for Web), Firebase App Check                                              |
 | **Database**           | Cloud Firestore (NoSQL)                                                                                                |
 | **File Storage**       | Firebase Storage (Token & Signed URLs)                                                                                 |
