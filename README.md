@@ -1,444 +1,944 @@
-# Haiku Bot Advanced - Backlog and Known Bugs
+# Haikuverse 🦖
 
-This document lists known issues, areas for improvement, planned future features, and provides a record of completed efforts.
+---
+## 1. Introduction
 
--------------------
-## Bug
+Haikuverse is a Flutter application designed as a rich, multi-sensory platform for creative expression. It empowers users to generate evocative haiku poems with **Google Gemini**, complement them with compelling imagery from Google Cloud's **Imagen 3**, and create dynamic audio narrations using Google Cloud **Text-to-Speech**. These creations are shared within an interactive "Haikuverse," a community space where users can follow their favorite poets, earn achievements, and express their identity through deeply personalized avatars featuring unique, procedurally generated animated frames. To extend this creative ecosystem, a dedicated **Sharing Tab** allows users to export their work as beautifully formatted 'haiku cards,' fostering a "trading card" metagame and providing a simple way to bring the app's positive, human-centric energy to friends and family. This entire experience is grounded in a philosophy of non-toxic social interaction by design.
 
-*   **Incompatibility - Just_Audio:** (bug) Flutter package just_audio.dart does not work with Windows-native apps. It only works with Android, iOS, and Chrome. It does not recognize the plug-ins.
-*   **Logbook Tab - Comment Persistence:** (bug) Comments submitted but not approved should persist when the user navigates away and then returns to the Logbook Tab.
+The application is built on a robust and scalable cloud architecture. Secure user management is handled by **Firebase Authentication**, reinforced by **Firebase App Check** to ensure requests originate from authentic app instances using Play Integrity on Android and reCAPTCHA Enterprise on the web. User profiles, creative works, and community data are managed through a sophisticated data model that strategically segregates private (`/users`) and public (`/public_profiles`) information within **Cloud Firestore**. All media assets are managed securely in **Firebase Storage**. A powerful serverless backend, architected with Google **Cloud Functions**, orchestrates all critical operations, from secure AI interactions to essential content safety checks using the powerful safety filters of **Google Gemini**.
 
--------------------
-## High Priority (Security, Stability, and Core Features)
+What distinguishes Haikuverse are its advanced discovery and visualization features. A cornerstone of the user experience is a client-side **procedural generation system** that uses a heuristic algorithm to construct unique 2D vector art "constellation" graphs, offering a novel way to navigate the Haikuverse. On the backend, **Vertex AI Vector Search** powers a sophisticated semantic discovery engine. This engine not only provides intelligent recommendations but also builds and maintains a dynamic **Knowledge Graph** of thematically linked constellations, a system made resilient by a suite of on-demand and scheduled maintenance functions that automatically prune dead links and heal orphaned nodes to ensure persistent data integrity across the entire Haikuverse. A scheduled **Zeitgeist Engine** analyzes community activity to highlight trending themes, allowing users to explore the Haikuverse through meaningful connections that go far beyond simple keyword searching.
 
-### Monetization
-*   **Play Console - Configure Subscriptions:** Define subscription products (e.g., monthly pass), including price and SKU ID, in the Google Play Console.
-*   **Subscription Screen - Add Purchase Package:** Integrate the official `in_app_purchase` package into the Flutter app's `pubspec.yaml`.
-*   **Subscription Screen - Display Products:** Build a new screen that uses the `in_app_purchase` package to fetch and display the configured products from the Play Store.
-*   **Subscription Screen - Initiate Purchase Flow:** When a user taps a product, use the package to launch the native Google Play purchase pop-up and listen for the result.
-*   **Backend - Create Validation Function:** Develop a Cloud Function that receives a `purchaseToken` from the app after a successful purchase.
-*   **Backend - Verify with Google API:** In the function, use the Google Play Developer API to securely validate the `purchaseToken` to confirm it's legitimate.
-*   **Backend - Grant Entitlement:** If the token is valid, have the Cloud Function update the user's document in Firestore with an entitlement flag (e.g., `subscription_active: true`).
-*   **Enforce Subscription - App Initialization:** Create a check within `main.dart` that listens to the entitlement flag from Firestore. If the check fails, navigate the user to the subscription screen.
-*   **Enforce Subscription - User Sign-in:** Create a check within `auth_screen.dart` that reads the entitlement flag from Firestore. If the check fails, navigate to subscription screen after EULA acceptance screen.
+This document offers a comprehensive technical deep-dive into Haikuverse's architecture. It details the core components—from the client-side procedural graph generation logic and state management strategies to the intricate backend Cloud Function orchestrations and advanced AI service integrations—elucidating data flow patterns, multi-layered security models, and providing a clear guide for setup and configuration. Its aim is to provide a thorough understanding of the application's design, innovative features, and the engineering principles that bring this creative social experience platform to life.
 
--------------------
-## Medium Priority (Functionality and Enhancements)
+### Key Features:
 
-### Play Store Launch
-*   **Play Store - App Release:** Generate a signed Android App Bundle (.aab) for production upload.
-*   **Play Store - Listing Setup:** Create all required store assets (icon, graphics, screenshots) and write listing text.
-*   **Play Store - Closed Testing:** Set up a closed testing track in the Play Console for the initial group of testers.
+* **Designed for Humans:** Haikuverse is architected as a cohesive creative experience designed to elevate human dignity, democratize access to powerful AI, and unleash creativity. The application serves as a dynamic partner in creative exploration, augmenting human artistry rather than replacing it. From the intuitive interface to the creator-centric controls, the entire experience is crafted to foster a rewarding community and maximize the inherent human delight in discovery and self-expression.
 
--------------------
-## Low Priority (Refinements and Future Features)
+* **Secure & Resilient Without Compromise:** The application is built on a scalable serverless backend using **Google Cloud Functions** and **Firestore**. Security is paramount, enforced through **Firebase App Check** attestation and a data model that strictly segregates private and public user data. The system even includes self-healing maintenance functions for its `Knowledge Graph`, designed for long-term data integrity and resilience.
 
-*   **Rate Limiting - Cloud Functions:** Implement rate limiting within the Cloud Function to prevent excessive API calls from individual users or in aggregate.
+* **Co-Create Techno-Poetic Art:** Guide powerful AI partners (**Gemini**, **Imagen 3**, and **Text-to-Speech**) to transform your creative spark into multi-sensory experiences. Move beyond simple generation to augment your artistry, weaving evocative haiku, stunning visuals, and dynamic audio narrations into a unified whole.
 
--------------------
-## Bright Idea Parking Lot (Deferred)
+* **Forge Your Unique Poet's Identity:** This is your stage. Define your public persona by curating and publishing your finest multi-sensory experiences, then share them with the world as beautiful 'haiku cards' designed to foster connection and well-being. Personalize your avatar with a selection of animated frames, and showcase unique flair unlocked by your creative achievements. Cultivate a following, connect with poets who inspire you, and become a celebrated voice within the Haikuverse.
 
-*   **Haikuverse - Inter-Constellation Warping:** Implement animated transitions to adjacent constellations when a semantic link is activated.
-*   **Haikuverse - Recenter Constellation:** Add a button to reset constellation pan and zoom to default.
-*   **Settings Tab - Refactor for Service Layer:** Refactor settings_tab.dart  to use the service layer rather than direct calls to the Cloud Run functions for Gemini API.
-*   **Customization Tab - Community Recognition:** Colorful badges for community contributions and feedback. AI generated with simple animation effects.
-*   **Customization Tab - Travel Log:** Provide a postcard feature crafting for downloadable digital mementos about a user's journey through constellations.
-*   **Customization Tab - User Nameplate Customization:** Stylized nameplates for display on owned constellations. New themes released every month!
-*   **Customization Tab - Voice Customization:** Text-to-speech voice packs. Use marketplace previews for demonstration. New themes released every month! 
-*   **Cloud Functions - Cold Start Performance:** Refactor index.js to use lazy initialization for heavy clients (e.g., VertexAI, Storage, TTS) to improve cold start times and deployment reliability.
-*   **Automated Testing - Service Layer:** Implement unit tests for `GeminiService`, `VertexAIService`, `FirestoreService`, and `StorageService`, verifying their internal logic.
-*   **Automated Testing - main.dart:** Add widget testing for _MyAppState logic (specifically _toggleFavorite, _removeFavorite, _associateImageUrlToHaiku) to verify interactions.
-*   **Automated Testing - Cloud Functions:** Develop unit/integration tests for new/modified backend Cloud Functions (e.g., theme recommendations, travel advisor).
-*   **Automated Testing - Integration Tests:** Implement end-to-end integration tests to validate critical user flows across multiple components. Focus on simulating realistic user journeys.
-*   **Social Metrics:** Metrics, metrics, metrics on social interactions help build community-wide reports, activity highlights, and records of individual achievements.
-*   **Gen AI Music Background:** Use Generative AI to overlay text-to-speech on top of generated music or ambient sounds, creating a richer, multi-sensory user experience.
-*   **Custom Claims/Admin Users:**  Implement different user roles (e.g., regular users and administrators)using Firebase custom claims to manage user permissions and access levels.
-*   **Comprehensive User Guide:** Develop detailed documentation and a user guide for end-users, explaining the app's features, setup, and usage instructions for a wider audience.
-*   **More Granular Error Handling in UI:** For certain critical errors, switch from Snackbar to more prominent UI elements like error dialogs or dedicated error screens to guide the user.
-*   **User-Configurable Hyperparameter Tuning:** Expose user settings for Gemini model parameters (temperature, top-p, etc.), enabling personalized control.
-*   **Multilingual Support:** Extend language support beyond English to enable haiku generation and UI localization in multiple languages, broadening the app's reach and accessibility.
-*   **Internationalization:** Use a localization library like `flutter_localizations`. This will enable the app to be easily translated into multiple languages that are localized.
-*   **Technical Documentation:**  Create comprehensive technical documentation targeted at developers, detailing the app's architecture, code structure, API integrations, and testing strategies.
-*   **Reduce GCP Attack Surface:** Implement IAM restrictions at the GCP Cloud Run level to further limit access and reduce the attack surface, particularly for production deployments.
-*   **Premium Monetization Strategy:** Incentivize monetization strategy to entice a subscription model (e.g., free Haikuverse view access, but content creation will require a subscription!).
-*   **Repository Pattern:** A stricter implementation of the Repository Pattern would have FirestoreService only handle data access, while a separate CloudFunctionService could handle the HTTP triggers.
-*   **Move Favorites Handling to Service Layer:** Moved the favorites handling methods in `main.dart` to `firestore_serivce.dart`.
-*   **Refactor for Riverpod:** Riverpod offers compile-time safety, reduced boilerplate, and enhanced performance characteristics, which can be beneficial for very large and complex applications.
-*   **Performance Profiling and Optimization:** Regularly use Flutter's performance profiling tools to identify potential bottlenecks (widget rebuilds, network latency, data processing).
-*   **Dartdoc Comments:** Create comprehensive in-code documentation that explains the purpose, functionality, and usage of classes, methods, and functions directly within the code itself.
-*   **Theming Options / UI Tools:** Explore more advanced theming options and consider providing UI tools for users to customize colors.
-*   **Error Handling - Utility Function:** Develop a reusable utility function or class to standardize the display of SnackBar error messages or more complex error UI elements.
-*   **Multi-Environment Firebase Backend:** Create separate Firebase projects (e.g., dev, staging, prod). Configure core services (Firestore, Auth, Functions) in each.
-*   **Configure Flutter App Flavors:** Implement Flutter Flavors in the user and admin app codebases to easily switch between connecting to the Dev, Staging, and Prod Firebase environments.
-*   **Build Admin App:** Create a separate Admin app connected to the common Firebase project and GCP back-end for managing community content and data maintenance functions.
-*   **Admin Notification Feature:** Create an SMS text reporting capability to monitor system health and moderate community features when needed.
-*   **Vector Database Maintenance:** Develop and test the batch Firebase Function (or Cloud Run job) for re-indexing existing Firestore data into Vertex AI Vector Search using the Admin app.
-*   **Performance Tuning - Image Generation/Loading:** Use caching, image compression, and progressive image loading to further improve the user experience.
-*   **Manage Tab - Constellation Name:** Add capability for user to create their own constellation name, run it through a Cloud Run sanitizer function, and then publish on success.
-*   **FavoritesScreen - Group By Constellation:** Group favorite haikus by constellation. Implement roll-up headers with haiku counts for each constellation (e.g., drill-down deck UI).
-*   **Export Capability:** Add support to download printable haiku greeting cards. 
-*   **Parse Haiku Lines:** Parse the favorite haiku into three separate lines so the image slideshow can transition in synch with the text-to-speech reading of each line.
-*   **User Dictation:** Add the capability for the user to dictate an entry into the prompt window. Add an enable microphone icon at the bottom right of the text window.
-*   **Additional Sign-In Methods:** Add support for alternative Firebase Authentication providers, such as Facebook Login, and Sign-in with Apple.
+* **Explore a Living Universe of Poetry:** Navigate a unique, procedurally generated vector-art cosmos where every star is a poem waiting to be discovered. This is not a static gallery; it's an emergent universe that responds to you. Watch as stars visually evolve with community appreciation, gaining vibrancy and unique coronas that reflect their shared impact.
 
--------------------
-## Reach Goal - Advanced Semantic Discovery with GNN-Powered Fable Index:
+* **Cultivate Your Creative Sanctuary:** Haikuverse is a collection of creative sanctuaries. Its powerful anti-toxicity tools proactively screen public content using Google Gemini's powerful safety filters, empowering poets to cultivate respectful conversations and foster genuine connection by design.
 
-*   **Periodic GNN Processing:** Construct graph from discoverable constellations (fable embeddings = node features, semanticNeighborIds = edges) for GNN to refine fable index.
-*   **Graph-Aware Embeddings:** Utilize a GNN architecture (e.g., GCN, GraphSAGE via PyTorch Geometric/DGL) in a self-supervised manner to generate new, richer embeddings for each constellation.
-*   **Dedicated GNN Vector Search Index (VS_Fables_GNNEmbed):** Populate a new Vertex AI Vector Search index with these GNN-generated embeddings.
-*   **Explore Tab - Enhanced Launch Gate:** Modify the "Explore Tab" launch gate to query this VS_Fables_GNNEmbed index when a user enters a prompt for their desired "adventure type."
-*   **Preserve Incremental Knowledge Graph:** Continue using the existing VS_Fables_TextEmbed index and the updateSemanticNeighbors function for incrementally building and updating constellation documents.
+* **Democratized Moderation:** Community safety is a shared responsibility. Every user has private, non-retaliatory channels to report abuse or provide direct feedback, creating a secure audit trail for administrative review without fear of reprisal.
 
--------------------
-## Completed Tasks
+* **Uncover a Deeper Web of Meaning:** Journey beyond simple keyword searches with a semantic discovery engine powered by **Vertex AI Vector Search**. This system doesn't just find content; it reveals the invisible, thematic threads that connect poems and fables, building a dynamic knowledge graph that invites you to get lost in a universe of interconnected ideas.
 
-*   **(complete) Haiku Data Class:** Created the `Haiku` data class.
-*   **(complete) Shared Preferences Memory Leak:** (bug) Fixed the potential memory leak.
-*   **(complete) NicknameProvider:** Implemented the `NicknameProvider` and integrated it correctly.
-*   **(complete) HomeScreen - Consolidate _generateContent:** Refactored the `_generateContent` method.
-*   **(complete) favorites_screen.dart:** Removed the unused `model` parameter.
-*   **(complete) ConstellationsScreen - Index Management**: Added a Provider to correctly hand the index logic.
-*   **(complete) ConstellationsScreen - Layout:** Implemented the three-column layout with correct sizing and alignment.
-*   **(complete) ConstellationsScreen - "x of y" Text:** Display the current haiku number and total favorites.
-*   **(complete) Constellations Screen Arrows:** Implemented arrows to control the cycling of haikus.
-*   **(complete) Authentication:** Implement user authentication (using Firebase Authentication) to secure access to the application and user data.
-*   **(complete) Services Directory:** Move REST API calls into this directory for modularity and re-use.
-*   **(complete) Sign-in/Sign-out:** Need to properly set initial route and follow-on routes when user signs-in, signs-out, and signs-in again.
-*   **(complete) Refactor Provider Calls:** Change Provider.of<T>(context, listen: false) to context.read<T>() and Provider.of<T>(context) to context.watch<T>.
-*   **(complete) Sign-out Button Width:** The sign-out button on the preferences screen is not wide enough.
-*   **(complete) Scrolling Underlays Header:** (bug) The scrolling list of haikus in the favorites screen incorrectly scrolls under the List header.
-*   **(complete) Unfavorite Button Broken:** (bug) The unfavorite button on the home screen does not work, and the favorites list creates duplicate entries every time it is pressed.
-*   **(complete) Email Provider:** Implement an email Provider that automatically updates the preferences screen with the email of the currently signed-in user rather than a manual entry.
-*   **(complete) StarsScreen - Name Change:** Change the name of the Constellations screen to the Stars (Image Pairing) Screen.
-*   **(complete) Stars Icon - New:** Implement an "image pairing" icon as a fifth screen in the bottom navigation bar for the Stars screen.
-*   **(complete) ConstellationsScreen - New:** Add a fifth screen that has three tabs (i.e., Constellation Selection, Shared Profile, and Community Achievements).
-*   **(complete) theme_provider.dart:** Load by name instead of index.
-*   **(complete) Seasonal Themes:** Add Autumn Theme and Beach Theme to the Theme Provider.
-*   **(complete) Cloud Migration - API:** Migrate sensitive logic (API key handling, haiku generation) to Google Cloud Functions. This is essential for security and scalability.
-*   **(complete) Cloud Migration - Clean-up:** Remove .env and dotenv functionality. Remove gemini "model" parameter and clean-up associated logic.
-*   **(complete) Refactor Favorite Button:** Modify _toggleFavorite and _removeFavorite in main.dart to use Haiku.id for favorite management and update duplicate checks with haiku.text.
-*   **(complete) Input Sanitization - Cloud Function:** Sanitize prompt input within the Cloud Function before sending it to Vertex AI. This is a crucial security measure to prevent prompt injection attacks.
-*   **(complete) Deploy Cloud Functions:** Set-up VS Code to deploy Firebase Cloud Functions from VS Code. Maintain CM of the folders directory in GitHub.
-*   **(complete) Cloud Functions - Authentication:** Enable user authentication in Cloud Run using Firebase authentication and Cloud Run functions.
-*   **(complete) Password Reset:** Implement a "Forgot Password" flow, allowing users to reset their passwords via email. This is a standard Firebase Authentication feature.
-*   **(complete) Email Verification:** Require users to verify their email addresses after signing up.
-*   **(complete) Shrinkable Textboxes:** Implement a shrinkable textbox for the haiku textboxes on the stars_screen so there is no bottom overflow on a smaller phones.
-*   **(complete) SignOutProvider - BuildContext:** Moved BuildContext from the signOut Provider to the Preferences and Verification screens for significantly easier unit testing.
-*   **(complete) Redundant firebase_options.dart:** (bug) Fix this right meow!!
-*   **(complete) Automated Testing - Unit Tests:** Isolate each unit (like NicknameProvider's logic, Haiku's toJson/fromJson, or a utility function) and check if it behaves exactly as expected.
-*   **(complete) Automated Testing - Widget Tests:** Verify the UI renders correctly given a specific state, basic interactions work, and UI interactions correctly trigger state changes or callbacks. 
-*   **(complete) Back-end - Image Generation:** Implement image generation logic using Imagen 3 using Firebase Cloud Function(s) and Vertex AI.
-*   **(complete) StarsScreen - Image Generation:** Implement the image generation functionality (using a Firebase Cloud Function that interacts with Imagen 3).
-*   **(complete) StarsScreen - Loading Indicators:** Add loading indicators to `StarsScreen` (for image generation) where asynchronous loading of Generative data occurs.
-*   **(complete) StarsScreen - Save Slots:** Add three generated image save slots for each favorite Haiku in the favorite list, and have the option to overwrite slots.
-*   **(complete) StarsScreen - Pop-up Confirmation:** Add a window that pops up with the image to be overwritten and a confirmation button whenever a save slot is selected.
-*   **(complete) Shared Preferences - Current Image:** (bug) The most recently saved image for a specific favorite Haiku does not display when navigating back to stars_screen or when restarting the app.
-*   **(complete) Shared Preferences - Save-slot Independent:** Regardless of which save slot an image overwrites, the stars_screen must display only the most recent image (saved or unsaved).
-*   **(complete) Deleted Haikus Persist Indefinetely:** (bug) The entry for that deleted haiku's ID will remain forever in the CurrentImageProvider's map inside SharedPreferences.
-*   **(complete) Firebase Storage - Image Disposal:** When unsaved images become inaccessible upon navigating away from stars_screen, they are incorrectly orphaned in Firebase storage.
-*   **(complete) StarsScreen Indexing:** (bug) Adding a new haiku to the favorites list incorrectly resets the current haiku index in Stars Screen to 0 instead of the most recently viewed.
-*   **(complete) PreferencesScreen - Input Validation:** Change the validator in `PreferencesScreen` to use an "else if" tree to provide the user with the reason why their input is invalid.
-*   **(complete) Automated Testing - current_image_provider:** Add widget testing for curent_image_provider.dart.
-*   **(complete) Automated Testing - Overwrite Confirmation Modal:** Add widget testing for overwrite_confirmation_modal.dart with the Cloud Function mock for image generation.
-*   **(complete) Automated Testing - Image Slots Screen:** Add widget testing for image_slots_screen.dart with the Cloud Function mock for image generation.
-*   **(complete) Automated Testing - FavoritesScreen:** Add widget testing for favorites_screen.dart, verifying UI rendering based on input list and interaction with the onFavoriteRemoved callback.
-*   **(complete) Automated Testing - HomeScreen:** Add widget testing for home_screen.dart with dependency injections for haiku generation. The "generate haiku" button states cannot be directly tested.
-*   **(complete) Generating Disables Save Button** (bug) Generating image improperly clears the save icon for all other unsaved images. Updated from string to map and added "true" to Navigator.pop(). 
-*   **(complete) Local Branch for Troubleshooting:** Used git checkout -b local-troubleshooting to work through a tenacious bug using a branch. Use git add lib/main.dart to move it back to main.
-*   **(complete) Fatal Range Error** (bug) Unfavoriting from home_screen always crashes the app if there is an image paired to the current haiku, when there is two or more haikus on favorites list.
-*   **(complete) Restarting App Disables Save Button** (bug) Restarting the App improperly clears the save icon for all unsaved images, so they are abandoned in Firebase Storage.
-*   **(complete) Saved Image Improperly Shows Saved Icon:** (bug) After an image is saved, it incorrectly shows a save icon. When the generate image button is pressed, it clears the condition.
-*   **(complete) Implement Firebase Storage Security Rules:**  Configure Firebase Storage Security Rules to require user authentication for image access, enhancing data privacy and security. ("@.@) --> d(^_^d)
-*   **(complete) Automated Testing - Refactoring Updates:** Updated automated testing for changes made to haiku.dart, user_profile.dart, current_image_provider, preferences_screen, and verificaitons_screen.
-*   **(complete) Firestore Data Structure:** Create a top-level Firestore collection named users.
-*   **(complete) Firestore Service Layer:** Implement a dedicated service class (e.g., services/firestore_service.dart) to encapsulate all interactions with Firestore related to user data and favorites.
-*   **(complete) User-Specific Keys - Users:** Modify SharedPreferences keys to be user-specific. Instead of just 'userProfile', use a key like 'userProfile_{uid}' for caching.
-*   **(complete) Device-Independent User Profiles:** Utilize Firebase Authentication's user UID as the unique identifier to enable cross-device profile access and prepare for future community features.
-*   **(complete) Unique Filenames for Storage:** Generate unique (UUID) filenames for profile images uploaded to Firebase Storage.
-*   **(complete) Handling New Users:** Provide a smooth onboarding experience and ensures every authenticated user has a corresponding Firestore document.
-*   **(complete) Firestore Security Rules:** Ensure users can access, modify, and delete only their own data, preventing unauthorized access.
-*   **(complete) Cloud Function - Profile Image Sanitization:** Sanitize uploaded profile images using Cloud Vision SafeSearch via a Cloud Function trigger.
-*   **(complete) User-Specific Cache Keys - Themes:** Update `SharedPreferences` keys for theme (theme_{uid}) to be user-specific.
-*   **(complete) Firestore Defaults for New Users":** (bug) Corrected default nickname initialization for new users. 
-*   **(complete) Navigate to HomeScreen on Sign-in:** (bug) Implemented auth state listener to reset navigation index on login.
-*   **(complete) Firestore Persistence for User Switching:** (bug) Added provider reload calls after auth events to fix state persistence issues between users.
-*   **(complete) Automated Testing - Refactored Providers:** Refactor user_profile, current_image_provider, nickname_provider, and theme_provider tests for migration of User profiles to Firestore.
-*   **(complete) Automated Testing - Refactored Screens:** Refactor preferences_screen, auth_screen, and verification_screen tests for migration of User profiles to Firestore.
-*   **(complete) Refactor Favorites UI Logic:** Extract favorites management UI logic from MyApp and put it into firestore_service for coupling with onSnapshot.
-*   **(complete) User-Specific Cache Keys - Favorites:** Update `SharedPreferences` keys for favorites (favorites_{uid}) to be user-specific.
-*   **(complete) Firestore Favorites Sync:** Implement storing/retrieving user favorites in Firestore (/users/{uid}/favorites) for multi-device sync.
-*   **(complete) Firestore as Single Source of Truth:** Refactor state management (e.g., favorites, profiles) to primarily use Firestore instead of SharedPreferences caching. d(O_O")
-*   **(complete) Automated Testing - Refactored Favorites:** Refactor user_profile, favorites_screen, and home_screen automated tests for migration of User favorites data to Firestore. 
-*   **(complete) StarsScreen - Haiku Text Alignment:** Vetically align center the haiku text inside the fitted box.
-*   **(complete) Nickname in Firestore not Updating:** (bug) The `authorNickname` field in Firestore database is not updating when the profile_screen save button is pressed.
-*   **(complete) Add VertexAIService:** Add vertex_ai_service.dart to encapsulate direct Firebase Vertex AI (Imagen) SDK calls in StarsScreen. Enables Dependency Injection for mocking image generation.
-*   **(complete) Add StorageService:** Add storage_service.dart to encapsulate direct Firebase Storage SDK calls in StarsScreen. Dependecy Injection avoids complex platform channel mocking during testing.
-*   **(complete) Automated Testing - StarsScreen:** Add widget testing for stars_screen.dart under the new service layer architecture to mock image generation, cloud storage, and Firebase authentication.
-*   **(complete) Cloud Function - Nickname Sanitization:** Validate/sanitize user nicknames on profile save using a Gemini safety check Cloud Function.
-*   **(complete) Nickname in Firestore Favorites not Updating:** (bug) The `authorNickname` field in Firestore Favorites docuements are not updating when the profile_screen save button is pressed.
-*   **(complete) FirestoreService - Batch Write Nickname:** New method in firestore_service.dart to batch write user ID and nickname changes throughout the favorites subcollection.
-*   **(complete) User Profile - Special Characters:** Change RegExp in the validator for the nickname TextFormField in preferences_screen.dart to include spaces, hyphens, and apostrophes.
-*   **(complete) Input Validation - SantizeNickname Function:** Limit special characters user can use for Nickname to prevent prompt injection attacks into the sanitizenickname cloud function.
-*   **(complete) Unique User Nickname:** Do not allow a user to duplicate the nickname of another user. Implement a duplicate check on the back-end in the SanitizeNickname cloud function.
-*   **(complete) Initial Login - Default Nickname for StarsScreen:** (bug) Upon initial sign-in to app, favorites on StarsScreen all have the default nickname. Now stars_screen reads from the Haiku object.
-*   **(complete) Automated Testing - StarsScreen:** (bug) Update stars_screen_test.dart for the refactor of nickname_provider.dart to load nicknames from Firestore rather than `SharedPreferences` cache.
-*   **(complete) Set-up Haikuverse Data Structures:** Build the core backend data structures required to support Haikuverse social features.
-*   **(complete) Set-up Haikuverse Community Storage:** Build the core backend storage infrastructure required to support Haikuverse social features.
-*   **(complete) Set-up Haikuverse Community Database:** Build the core backend datatbase infrastructure required to support Haikuverse social features.
-*   **(complete) Incremental Indexing:** Firestore onCreate triggered Firebase Function calls Vertex AI Embedding API, and upserts the resulting vector into the appropriate Vertex AI Vector Search index.
-*   **(complete) Vector Search Querying:** Create the Callable Firebase Function that embeds a query, performs a similarity search using Vertex AI Vector Search, and returns relevant constellations.
-*   **(complete) Publishing Recommendations:**  Use Vertex AI Vector Search (create index, define dimensionality) to identify constellations related to the semantics of the haiku package to be published.
-*   **(complete) ConstellationsScreen - Publish Tab:** Display haiku experience packages for each haiku on the favorites list and the ability to scroll using left and right arrows.
-*   **(complete) ConstellationsScreen - Publish Tab:** Create a slideshow that displays each of the three saved pictures in the generated haiku. Add an icon button to play the slideshow.
-*   **(complete) ConstellationsScreen - Publish Tab:** Add a button to publish a haiku experience package to the Haikuverse back-end.
-*   **(complete) ConstellationsScreen - Publish Tab:** Add an icon button to pop-up a bottom modal screen with constellation picker that lists recommended constellations to publish to.
-*   **(complete) ConstellationsScreen - Publish Tab:** Allow the user to select a constellation from an existing subscription or to add a new constellation.
-*   **(complete) Left/Right Arrow Indexing:** (bug) The left/right arrows in stars_screen and preview_star are causing run-time crashes. Modified _favoritesSubscription in main.dart to update indexes. 
-*   **(complete) User NickName Missing from New Constellaton:** (bug) User nickname is incorrectly set to default "New Poet" when constellation_detail_modal is accessed for a new constellation.
-*   **(complete) Empty Constellations not Deleted from Firestore:** (bug) Constellations decremented to star count zero are incorrectly remaining in the Firestore collection for Constellations.
-*   **(complete) ConstellationsScreen - Publish Tab:** Implement the Mine slicer logic so that the list is filtered by constellations the user has an existing realationship with.
-*   **(complete) Automated Testing - Publish Tab:** Add widget and unit testing for publish_tab.dart and subordinate models, screens, and widgets.
-*   **(complete) Automated Testing - Image Picker:** Add widget testing for `profile_image_picker.dart. Simulated interactions with a mocked ImagePickerPlatform.
-*   **(complete) FavoritesScreen - Voice Pairing:** Change top app bar title to Voice Pairing to reflect enhanced funcitonality of this page.
-*   **(complete) Cloud Run Function - Text-to-Voice:** Utilize Google Cloud Text-to-Speech API to create an audio file for any haiku in the favorites list. Manage Firebase storage and Firestore database.
-*   **(complete) Firebase Storage - Audio Files:** Store audio files in Firebase storage and pass URLs to Firestore database for on-demand use. Ensure haiku creator has CRUD rights to manage storage.
-*   **(complete) Firestore Database - Audio Metadata:** Manage audio file metadata and allow public read when a star is published. Ensure haiku creator has CRUD rights to manage storage.
-*   **(complete) FavoritesScreen - Text-to-Voice Button:** Add an icon button to each tile to access the read control modal screen and modify the paired voice for each haiku in the favorites list.
-*   **(complete) FavoritesScreen - Text-to-Voice Modal:** Add a modal screen to select voice style and cadence to read the haiku. Add a play button and done button to return to `FavoritesScreen`. 
-*   **(complete) FavoritesScreen - Audio Playback:** Add a big round icon button to the text-to-voice modal screen generate a live preview and save the audio file (or a playback if file already exists).
-*   **(complete) Firebase Storage - Audio File Clean-up:** Add capability delete an audio file from storage when a haiku is removed from the favorites list by any method.
-*   **(complete) Automated Testing - TTS Integration:** Add widget testing for favorites_screen.dart and audio_toolkit_modal.dart for the integration of Cloud Text-to-Speech. 
-*   **(complete) Manage Tab - Constellation Scrolling:** Implement a scrollable card list of constellations the user owns.
-*   **(complete) Manage Tab - Constellation Fables:** Add the cability for a constellation owner to use Gemini to generate a short story for each constellation that dynamically reflects star composition.
-*   **(complete) Manage Tab - Constellation Images:** Add the cability for a constellation owner to use Imagen 3 to generate an image for each constellation that reflects star composition.
-*   **(complete) Fable Index:** Create an index in Vertex AI Vector Search for determining semantic similarity of a fable to other fables. 
-*   **(complete) Manage Tab - Knowledge-Graph Building:** Create a knowledge graph for relationships between discoverable constellations using semantics (implemented in Firestore /constellations).
-*   **(complete) Cloud Run Functions- Memory Configuration:** Update generateconstellationrecommendations, publishstar, deletepublishedstar, and suggestconstellationnames to V2 functions.
-*   **(complete) Automated Testing - Manage Tab:** Add widget and unit testing for manage_tab.dart and subordinate models, screens, and widgets.
-*   **(complete) Explore Tab - UI Structure:** Implemented two main vertical sections with 50/50 flex scaling (Top: Display, Middle: Toolkits).
-*   **(complete) Explore Tab - Launch Gate Display:** Shows selected constellation's fable image (fitted, left) and fable text (scrollable, right).
-*   **(complete) Explore Tab - Static Graph Preview:** Renders `MiniConstellationGraphView` in bottom-half of top section, updating with selection.
-*   **(complete) Explore Tab - Mode Toggle:** Implemented centered `ToggleButtons` for "Discover", "Known", "News", and "Launch" toolkits.
-*   **(complete) Explore Tab - "Discover" Toolkit:** Added `TextField` (min 3 lines, clearable), "Find Adventures" button, and `Slider` for (mock) results.
-*   **(complete) Explore Tab - "Known" Toolkit:** Displays selected constellation's name, owner avatar/nickname, star count; includes `Slider` for (mock) results.
-*   **(complete) Explore Tab - "News" Toolkit:** Basic stub UI implemented for future news content.
-*   **(complete) Explore Tab - "Launch" Toolkit:** Displays contextual comment area and "Launch into Haikuverse!" button.
-*   **(complete) Explore Tab - State Persistence:** "Discover" prompt, results, slider & "Known" list, slider persist across mode toggles.
-*   **(complete) Explore Tab - Display Sync Logic:** Graph/fable area correctly syncs with active slider when toggling modes.
-*   **(complete) Explore Tab - Launch Button Logic:** Button enables with selection and is stubbed (logs ID, shows snackbar).
-*   **(complete) Explore Tab - Discover Toolkit:** Added Cloud Function getthemebasedconstellationrecommendations() to embed user prompt, query `VS_Fables_TextEmbed`, return top N discoverable constellations.
-*   **(complete) Explore Tab - Discover Toolkit:** Added FirestoreService method getThemeBasedConstellationRecommendations() to call theme query Cloud Function.
-*   **(complete) Explore Tab - Discover Toolkit:** Replace mock constellations for Discover toolkit with real data, loading, and errors.
-*   **(complete) Explore Tab - Known Toolkit:** Added FirestoreService method for user's discoverable constellations.
-*   **(complete) Explore Tab - Known Toolkit:** Replaced mock constellations for Known toolkit with real data, loading, and errors.
-*   **(complete) Explore Tab - Launch Toolkit:** Add Cloud Function for Gemini to generate travel advice based on constellation data & user prompt (if any).
-*   **(complete) Explore Tab - Launch Toolkit:** Implement Firestore caching for travel advisor comments based on input hashes.
-*   **(complete) Haikuverse - Navigation Screen:** Create dedicated screen, triggered by Explore Tab's "Launch" button, for 2D Haikuverse exploration.
-*   **(complete) Haikuverse - Graph Visualization Core:** Implement a heuristic  procedural generation state machine for dynamic, interactive constellation layout.
-*   **(complete) Haikuverse - Intra-Constellation Navigation ("Zorching"):** Enable smooth animated panning, zooming within the current constellation's detailed view.
-*   **(complete) Haikuverse - Star Focusing:** Implement animation controllers to smoothly centers and zooms in on a star when tapped, and reverse the pan/zoom when exiting the pop-up screen.
-*   **(complete) Haikuverse - CustomPaint Styling:** Implement rich vector art style for constellations, stars (if shown), and links using `CustomPaint`.
-*   **(complete) Haikuverse - Pulse Star on Focus-out:**Add single pulse effect when focus-out (rewind) animation completes and the star is back in its original constellation position.
-*   **(complete) Haikuverse - Star Detail Display:** On tapping a star node, display the haiku pop-up window.
-*   **(complete) Haikuverse - Data Loading:** Fetch selected constellation and its stars from Firestore to populate the 2D vector-art constellation rendered in the Haikuverse Navigation screen.
-*   **(complete) Star Popup - Experience Tab:** Create the unbiased, art-focused initial view of the selected star with a synchronized audio file and image slideshow playback (with a pause feature). 
-*   **(complete) Increased Allocations:** Increase maximum number of haikus on the favorites list to 99.
-*   **(complete) Constellation Lifecycle & Ownership:** Ensured constellations are deleted when empty and ownership transfers correctly if the original owner unpublishes all their stars while others remain.
-*   **(complete) Orphans in Published Stars Collection:** (bug) Unfavoriting a star needs to remove it from `published_stars` collection, decrement the star counter, and clear local cache.
-*   **(complete) Explorer Tab - Manager ID:** Updated the Known Toolkit in `explorery_tab.dart` to display the manager ID rather then the creator ID.    
-*   **(complete) Publish Tab - Manager ID:** Updated `constellation_detail_modal.dart` and `constellation_info_display.dart` to display the manager ID rather then the creator ID.
-*   **(complete) Manage Tab - Constellation Connections:** Restrict connections for constellations to neighbors with high semantic similarity (random between 1 and 5 neighbors on save). \m/ (>.<) \m/
-*   **(complete) Publish Tab - Data Validation:** Implemented client-side validation of knowledge graph edges each time a constellation node is selected for view in the mini_constellation_graph_view.
-*   **(complete) Manage Tab - New Neighbors Notification:** Modified the "successful save" snackbar message in constellations_customization screen to display the constellations new, randomized neighbors.
-*   **(complete) Star Popup - Like/Unlike Star:** Allow users to like/unlike a star without knowing who the creator is via the like button on the Experience Tab of the Star Popup window.
-*   **(complete) Star Popup - Star Udpates:** Used cache-busting and audio_toolkit_provider.dart to synchronize star_detail_popup with user changes to published stars using `FavoritesScreen` and `StarsScreen.`
-*   **(complete) Automated Testing - Audio Player Provider:** Add unit testing for audio_player_provider.dart.
-*   **(complete) Update to Firebase SDK:** Refactored vertex_ai_service.dart, stars_screen.dart, constellation_customization_screen.dart to migrate from firebase_vertxai to firebase_ai.
-*   **(complete) Update to Firebase SDK:** Refactored stars_screen_test.dart and constellation_customization_screen_test.dart to migrate from firebase_vertxai to firebase_ai.
-*   **(complete) Manage Tab - Conditional Plural Case:** (bug) For a count of 1 star, use the singular case "star" and for more than one star, use the plural case "stars" in constellation tiles.
-*   **(complete) Explore Tab - Dynamic Graph Preview:** Implement animation controller(s) for constellations in `MiniConstellationGraphView` for users to visually navigate to adjacent constellations.
-*   **(complete) Audio Modal - Provider State Detection:** (bug) audio_toolkit_modal and star_detail_popup have play buttons that are not properly tracking audio_provider state. 
-*   **(complete) Automated Testing - Audio Modal:** Updated automated testing for the refactoring of audio_toolkit_modal.dart and audio_player_provider.dart.
-*   **(complete) HomeScreen - Refactor for Service Layer:** Refactor home_screen.dart  to use the service layer rather than direct calls to the Cloud Run functions for Gemini API.
-*   **(complete) HomeScreen - Star Naming Toolkit:** Add a Cloud Run function for Gemini to suggest star names based on the haiku text. 
-*   **(complete) HomeScreen - Button Theme Color:** Generate button on home_screen needs to match the theme color of the buttons on all the other screens.
-*   **(complete) HomeScreen - Fixed Textbox Size:** Change the constrained box for the generated haiku into a fitted box so that there is always only three lines of text. Center align the text.   
-*   **(complete) Haikuverse - Star Labels:** Refactor haikuverse_navigation_screen.dart so that the constellation nodes display star names rather than the first line of Haiku text. 
-*   **(complete) Star Popup - Star Names:** Refactor star_detail_popup.dart to display the star names on the haiku experience tab.
-*   **(complete) Automated Testing - HomeScreen Update:** Update widget and unit testing for `home_screen.dart` after refactoring for Star Naming and Notifications toolkits.
-*   **(complete) Automated Testing - Haikuverse Navigation:** Add tests for the new `haikuverse_navigation_screen.dart` and `constellation_view_painter.dart`.
-*   **(complete) Star Popup - Unpausable if Image Only:** (bug) In the absence of an audio file, pushing the "Play Full Experience" button incorrectly shows "Resume Experience" instead of "Pause Experience". 
-*   **(complete) Star Popup - Logbook Tab:** Display social context (creator and metadata), existing comments, and allow new comment submission.
-*   **(complete) Star Popup - Viewer Comments:** Allow users to enter comment(s) about the star in the Logbook tab. After a harm-check, push the publish request to `HomeSecreen` notifications area. 
-*   **(complete) Notifications Screen:** Add a scrolling list of user-specific messages such as moderation of user comments the Logbooks for owned stars. Accessible from the alarm bell icon in the top app bar.
-*   **(complete) Controlled Social Posts:** Implement social posts for stars that are sanitized by Gemini. Allow the star owner to aprove the post before it is made public (or report abuse).
-*   **(complete) Community Moderation Tool:** Implement private moderation_queue in Firestore for administrators to adjudicate user reports of abuse and review system reports of failed harm checks. 
-*   **(complete) New Firestore Collection - Public Profiles:** Moved from a single-user data model to a secure, multi-user architecture with a clear separation between private and public data.
-*   **(complete) Poet Tab - Follow/Unfollow Button:** Integrated a dynamic UI button to follow or unfollow poets.
-*   **(complete) Poet Tab - Conditional UI:** The follow button is now correctly hidden when a user views their own profile.
-*   **(complete) Cloud Functions - Follow/Unfollow Logic:** Deployed HTTP functions for secure follow/unfollow actions.
-*   **(complete) Firestore - Atomic Follows:** Used batch writes for atomic updates to follower/following lists and public follower counts.
-*   **(complete) Cloud Functions - Follow Notifications:** The backend now creates a notification for the poet when they gain a new follower.
-*   **(complete) Poet Tab - Display Achievements:** Displayed earned achievements dynamically on the Poet tab from public profile data.
-*   **(complete) Cloud Functions - Idempotent Achievements:** Refactored backend logic to award achievements idempotently.
-*   **(complete) Cloud Functions - Achievement Notifications:** Backend now creates a notification when an achievement is awarded.
-*   **(complete) Notifications Screen - Refactor:** Rebuilt the screen to handle multiple, distinct notification types.
-*   **(complete) Notifications Screen - Dismiss Action:** Implemented the ability for users to dismiss notifications.
-*   **(complete) Cloud Functions - Data Sync:** Synced public likeCount and constellationId back to the private user favorites document. d(╬ò_ó)d
-*   **(complete) Achievements - Constellations:** Add idempotent achievements for first, fifth and tenth public constellations.
-*   **(complete) Poet Tab - Scrollable Acheivements:** Add a scrollable list to the Poet achievements area.
-*   **(complete) Launch Toolkit - Ghost Constellations:** (bug) When unpublishing the last star from a constellation, that constellation incorrectly persists in the explore tab launch toolkit.
-*   **(complete) Poet Tab - Zero Followers:** Hide followers count when the user has 0 followers.
-*   **(complete) Automated Testing - Public Data Models:** Add unit testing for `comment.dart`, `notification.dart`, and `public_profile.dart`.
-*   **(complete) Image Slots Screen - Live Previews:** Refactored `image_slots_screen.dart` to show a preview of the image when licking on an overwrite slot. Also updated automated testing for the refactor.
-*   **(complete) Automated Testing - Notifications Screen:** Add widget and unit testing for `notifications_screen.dart`.
-*   **(complete) Automated Testing - Star Popup Screen:** Add widget and unit testing for `star_detail_popoup.dart` and `star_slideshow.dart`.
-*   **(complete) Zeitgeist Engine:** Develop the backend Cloud Function to analyze activity, extract the top 5 themes, and rank the top 5 candidate constellations for each.
-*   **(complete) Zeitgeist Map Widget:** Build the new CustomPaint widget to display the floating theme words, handling the "pop" animation and "Focus Chevron" indicator on tap.
-*   **(complete) Zeitgeist Data Integration:** Refactor the Explore Tab and FirestoreService to fetch and stream the live Zeitgeist data from the /app_meta/zeitgeist document.
-*   **(complete) Zeitgeist Connection Logic:** Implement the "Waterfall Check" and connect the ZeitgeistMap tap events to the MiniConstellationGraphView to display the result.
-*   **(complete) Zeitgeist State Pesistence:** (bug) The Zeitgeist map does not maintain persistence when navigating to other toolkits, tabs, and screens and then back. Udpated persistence of all toolkits.
-*   **(complete) Explore Tab - Latency:** (bug) Occasional latency when switching between Discover toolkit and Known toolkit. Fixed when `explore_tab.dart` was refactored for persistence of all toolkits.
-*   **(complete) Haikuverse - Procedural Override:** For three stars or less, bypass the heuristic algorithm to make one connection (only) from each of the stars on the first ring to the center star.
-*   **(complete) Known Toolkit - Get Followed Constellations:** Implement a Cloud Run function getFollowedConstellations()  get the constellations owned by poets a user follows.
-*   **(complete) Known Toolkit - Data Layer:** Add methods to firestore_service.dart to get the Private, Public, and Followed lists of constellations. 
-*   **(complete) Known Toolkit - Scrollable Tiles:** Refactor Known Toolkit to create a list of scrollable constellation tiles for Private, Public, and Followed constellations.
-*   **(complete) Known Toolkit - Filtering Logic:** Add the slicer logic for filtering Private, Public, and Followed constellations.
-*   **(complete) Constellation Customization - Stale Snackbar:** (bug) Refactored `constellation_customization_screen.dart` so the neighbors snackbar uses a StreamBuilder to overcome a backend race condition.
-*   **(complete) Publish Tab - Star Capacity Limit:** Added a cap of 10 to the number of stars that can be published to a constellation to prevent the navigation screen from becoming cluttered. 
-*   **(complete) Publish Tab - Deduped RAG Recommendations:** Added deduplication logic to cloud run function generateconstellationrecommendations() so it always returns five constellations with less than 10 stars.
-*   **(complete) Capped Constellation Icon:** Use a conditional symbols.star_shine for constellations that reach 10 stars.
-*   **(complete) Constellation Customization - Stale Snackbar:** (bug) Fixed neighbors snackbar by implementing a synchronous RPC-style backend function. Removed unreliable Firestore onDocumentWritten trigger. 
-*   **(complete) Automated Testing - Constellation Customization:** Refactored `constellations_customization_screen_test.dart`, `constellation_test.dart`, and `manage_tab_test.dart` for the new StreamBuilder logic.
-*   **(complete) Automated Testing - Zeitgeist Map:** Add widget and unit testing for `zeitgeist.dart` and `zeitgeist_map.dart`.  
-*   **(complete) Automated Testing - Explore Tab:** Add widget and unit testing for `explore_tab.dart` and `mini_constellation_graph_view.dart`.
-*   **(complete) Automated Testing - ConstellationsScreen:** Add widget testing for `constellations_screen.dart` to verify tab rendering and placeholder content are rendered correctly.
-*   **(complete) Publish Tab - Constellation Details:** Add fable image and text to constellation_detail_modal.dart so the user can review them before publishing. Also updated automated testing.
-*   **(complete) Publish Tab - Audio Ready Indicator:** Added a trailing icon after the Star Name to indicate when an audio file is paired to the star.
-*   **(complete) Publish Tab - Star Name at Top:** Added the Star Name above the slideshow preview.
-*   **(complete) Fable Storage Clean-up:** (bug) Needed to clean-up fable images that the user discards in storage whenever the save button, visualize button, or exit button is pressed. Also updated automated testing.
-*   **(complete) Manage Tab - Constellation Counter:** Add a banner at the top of the manage tab that shows the current number of constellations owned. Also updated automated testing.
-*   **(complete) Manage Tab - Constellation Sharing Rules:** Ensure owners can publish to thier own private constellations, but other users can't see private constellations as publish recommendations. 
-*   **(complete) Backend - Private Constellation Discoverability:** Updated getFollowedConstellations() and getThemeBasedConstellationRecommendations() with a dual-flag system (isPublic vs. isDiscoverable).
-*   **(complete) Constellation Detail Modal - Private Constellations:** (bug) Constellation detail modal showed "Managed by: Unknown User". Fixed generateConstellationRecommendations() to denormalize owner's profile data.
-*   **(complete) Backend - Corrected Stale Creator Data on Creation:** (bug) Moved the public profile read inside the Firestore transaction in the publishStar function to guarantee atomicity. Added "data healing" logic.
-*   **(complete) Vector Search - Fixed Fable Indexing for Discoverability** (bug) Addressed a critical bug in saveConstellationCustomizations() where private, discoverable constellations were not appearing in searches.
-*   **(complete) Automated Testing - Explore Tab:** Added a test to explicitly verify the interactions between all three filter buttons, ensuring the UI behaves as expected as the user toggles them in sequence.
-*   **(complete) Zeitgeist Map - Word Collisions:** (bug) Replaced the random placement algorithm in `zeitgeist_map.dart` with a robust Archimedean Spiral layout to prevent word overlaps and clipping.
-*   **(complete) Zeitgeist Engine - Data Integrity and Diversity:** The _zeitgeistEngineLogicguarantees a payload of 5 themes, sourced from a minimum of 3 unique constellations. Includes fallback logic for sparse data.
-*   **(complete) Automated Testing - Zeitgeist Map:** Updated `zeitgeist_map_test.dart` for the refactoring of `zeitgeist_map.dart` to use a robust Archimedean Spiral layout to prevent word overlaps and clipping.
-*   **(complete) Notifications Screen - Button Feedback:** (bug) Add a spinning indicator to the "Accept" button so the app doesn't appear to be non-reponsive when approving comments. Also updated automated testing.
-*   **(complete) Home Screen - Button Size:** (bug) Stacked the spinning indicator on top of the "Generate Haiku" button in so the button does not change width on press. Also updated automated testing.
-*   **(complete) Explore Tab - Stale Data:** (bug) The Discover, Known, Zeitgeist, and Launch toolkits have stale data (again!) and do not reflect the semantic neighbors currently in Firestore.
-*   **(complete) Explore Tab - No Persistence:** (bug) The Known and Zeitgeist toolkits maintain user setting persistence while on Explore Tab, but lose persistence when navigating to other screens.
-*   **(complete) Explore Tab - Excessive Mini Graph Rebuilds:** (bug) Fixed an issue where excessive Gemini API calls to get travel advice were causing way too many rebuilds, always making the mini-graph flash on rebuild.
-*   **(complete) Automated Testing - Explore Tab:** Updated automated testing for the refactoring of `explore_tab.dart` and `mini_constellation_graph_view.dart`. This completes the community features spring! d(^_^d)
-*   **(complete) Zietgeist Word Cloud Excessive Jitter:** (bug) Fixed an excessive rebuild loop by removing the retry logic out of the build method and into the calculate visual method itself."
-*   **(complete) Zeitgeist Toolkit - Extra Rebuild:** (bug) The Zeitgeist map had an extra unnessary rebuild whenever a word was clicked. Removed the Gemini travel advice call from inside the Zeitgeist toolkit.
-*   **(complete) Knowledge Graph Self-Pruning:** Added capability for any user to remove dead links automatically when visiting a new constellation. This only prunes dead links.
-*   **(complete) Knowledge Graph Self-Healing:** Added weekly schduled Cloud Run function knowledgegraphhealer() to autmatically update semantic neighbors of constellations that have been pruned to zero!
-*   **(complete) Fable Vector Search Clean-up:** Modified Cloud Run function deletePublishedStar() to remove a constellation that has been deleted from Firestore from the Fable vector search index as well.
-*   **(complete) Vector Search Index Maintenace:** Added Cloud Run functions cleanupfableindex() and cleanupstarindex() to remove orphans from the indexes by reconciling them with Firestore database ground-truth.
-*   **(complete) Settings Tab - Policies:** Add links to EULA and Privacy Statement. Used large, static string constants in `legal_text.dart` and markdown formatting using the markdown_widget package import.
-*   **(complete) Settings Tab - User Feedback:** Add a user feedback system to collect user suggestions, bug reports, and questions, enabling continuous improvement based on user input.
-*   **(complete) Settings - Constrained Textboxes:** Change the data entry Textboxes to constrained textboxes so they do not expand more than 512 pixels on the Chrome platform.
-*   **(complete) Automated Testing - Explore Tab:** Updated `explore_tab_test.dart` and `mini_constellation_graph_view_test.dart` for the refactoring for several mini-graph performance upgrades.
-*   **(complete) Automated Testing - Feedback Screen:** Add widget and unit testing for `feedback_screen.dart`, `feedback_category.dart`, and `feedback_item.dart`.
-*   **(complete) Automated Testing - Settings Tab:** Add widget and unit testing for `eula_screen_test.dart`, `privacy_screen_test.dart`, and `settings_tab.dart`.
-*   **(complete) Launch Toolkit - Mini-graph Navigation:** (bug) When in the launch toolkit only, tapping a neighbor node now updates the travel advice. This is a more intutive UX for the Launch toolkit.
-*   **(complete) Explore Tab - Refectored for Robustness:** Methods _fetchAndSetTravelAdvice() and _engineerTravelAdvicePrompt() now receive parameters. They no longer rely on a time-sensitive external state variables.
-*   **(complete) Automated Testing - Explore Tab:** Updated explore_tab_test.dart for the refactoring of Explore Tab so tapping a neighbor node now updates the travel advice. Also fixed a test-only initialization bug.
-*   **(complete) Customization Tab - Avatar Studio:** Manage the user's profile picture and the frame selector using polymorphism for a common interface that every frame widget must implement.
-*   **(complete) Customization Tab - Animation Frame:** Define an abstract class that all border frames must adhere to. It will require specific parameters like `child` and `flairData`.
-*   **(complete) Customization Tab - Frame Seelctor:** Add a simple CarouselSlider that displays previews of the available frames.
-*   **(complete) Customization Tab - Comet Frame:** Add a plugable module that contains its own internal logic to drive comet animation, trail, and burst effects. it will use a separate customFramePainter.
-*   **(complete) Customization Tab - Pride Frame:** Add a plugable module that contains its own internal logic to drive Pride rainbow animation, trail, and burst effects. it will use a separate customFramePainter.
-*   **(complete) Customization Tab - Flair Slots:**  Make the animated frames "smart" by connecting them to the user's earned achievements displayed in an achievement gallery below the Avatar Studio.
-*   **(complete) Customization Tab - Flair Interactions:** Implement collision logic for activating the "burst" effect for commet collision(s). The CometFramePainter will receive the list of active flair targets. 
-*   **(complete) Customization Tab - Rainy Pond Frame:** Add a plugable module that contains its own internal logic to drive Rainy Pond ripples that occasionally have interference patterns.
-*   **(complete) Customization Tab - Mosaic Frame:** Add a plugable module that contains its own internal logic to drive Mosaic tile shimmer and wave of change.
-*   **(complete) Customization Tab - Thorn Frame:** Add a plugable module that contains its own internal logic to drive vine growth and decay, thorn spawns, and less frequent flower spawns.
-*   **(complete) Customization Tab - None Frame:** Add a plugable module that contains its own internal logic to turn off the frame border and show a default view.
-*   **(complete) Customization Tab - Moonlit Motes Frame:** Add a plugable module that contains its own internal logic to drive moon mote spawn, merge, split, and decay lifecycles. Implemented a super-mote collider!
-*   **(complete) Customization Tab - Lava Lamp Frame:** Add a plugable module that contains its own internal logic to drive a hypnotic, lava-lamp feel with a bright pink ploppy blob. This was a Halone-level stress trial.
-*   **(complete) Customization Tab - Spirograph Frame:** Add a plugable module that contains its own internal logic to drive a three phase laser-etched thin line spirograph using three vibrant colors.
-*   **(complete) Customization Tab - Ecosystem Frame:** Add a plugable module that contains its own internal logic to drive a simulation of flocking, avoidance, and hunter simulation. Pure masochism for a Monday!
-*   **(complete) Customization Tab - Mycelium Frame:** Add a plugable module that contains its own internal logic to drive a simulation of a mycelium network. Threads pass a flash message upon fuzing to form a node.
-*   **(complete) Customization Tab - Circle of Life Frame:** Add a plugable module that contains its own internal logic to drive a simulation of a circle of life that flashes the colors a a hummingbird!
-*   **(complete) Customization Tab - Kintsugi Frame:** Add a plugable module that contains its own internal logic to drive a simulation of a repairing cracks in a ring of square elements. Gold fades to a scar and heals.
-*   **(complete) Customization Tab - Contrast Backdrops:** Added white circle contrast to flair slots for Circle of Life, Kintsugi, and Mosaic frames. Modified avatar_studio.dart to pass the activeFlair parameter.
-*   **(complete) Acheivments Gallery - Scroll Arrows:** Modified `achievment_gallery.dart` to add arrow on the right margin to indicate scrollable content. Modified grid layout to enlarge left and right margins.
-*   **(complete) Customization Tab - Persistence:** Store user choices for image frame customization in Firestore public_profile and persist the choices each time the user navigates back to the customization tab.
-*   **(complete) Star Popup - Poet Tab:** Refactor `star_detail_popup.dart` to integrate customized border frames for user profile images. Enlarged profile image and moved Poet data to its own row. d(^_^d) 
-*   **(complete) Atomicity for Audio File Updates:** (bug) If a star is published, audio URL needs to update both the /users/favorites collection and the /published_stars collection with atomicity.
-*   **(complete) Followers Tab - Followers:** A complete unabridged list of all the poet's greatest fans! Also add the capability to reciprocate the follow! =^.^=
-*   **(complete) Automated Testing - Star Popup:** Modify `star_detail_popup_test.dart` and `public_profile_test.dart` for the refactoring of the Poet Tab to use customized border profile frames. 
-*   **(complete) Automated Testing - Customization Tab:** Add widget and unit testing for `followers_tab.dart` and `follower.dart`.
-*   **(complete) Automated Testing - Customization Tab:** Add widget and unit testing for `customization_tab.dart`, `avatar_studio.dart`, and `acheivement_gallery.dart`.
-*   **(complete) Automated Testing - Customization Tab:** Add widget and unit testing for `frame_selector.dart`, `flair_target.dart`. The class `animated_frame.dart` does not require a dedicated regression test.
-*   **(complete) Images Missing - Chrome:** (bug) Images not displayed on the Chrome plaform. Gemini tells me there is a support group's worth of developers who have hit the "Firebase Storage CORS Flutter Web" wall ('@_@)
-*   **(complete) Authentication Screen - Constrained Textboxes:** Change the data entry Textboxes to constrained textboxes so they do not expand more than 512 pixels on the Chrome platform.
-*   **(complete) Firebase App Check - Android:** Add Firebase App check for Android and Android Emulator to verify requests are coming from your authentic app, adding another layer of security.
-*   **(complete) Firebase App Check - Web:** Add Firebase App check for Web using reCAPTCHA Enterprise to verify requests are coming from your authentic app, adding another layer of security.
-*   **(complete) Profile Images Not Updating in Community Views:** (bug) Stale denormalized URLs in constellations not updated after a profile image change, causing 403 errors. Fixed with syncProfileImageOnUpdate().
-*   **(complete) Additional Sign-In Methods:** Add support for Android and Web use of Google Sign-In provider as an alternative to email/password Firebase Authentication. 
-*   **(complete) Google Sign-in for Web:** (bug) Google sign-in now works for the Web application. Development environment requires LocalHost:5000 and the user must be signed into Chrome. Three days of hell.
-*   **(complete) Offical Google Sign-in Button for Web App:** Replace the custom Google sign-in button for Web with the official Google sign-in button for Web.
-*   **(complete) Authentication Screen - EULA:** Add a one-time screen for new users to check the box for `EULA`.  Moved user sign-in navigation logic from main.dart to auth_screen.dart. 
-*   **(complete) Google Sign-in State:** (bug) Fixed stale callback of subsequent calls of Google Sign-in after integration of `eula_acceptance_screen.dart` and moving sign-in navigation to `auth_screen.dart`.
-*   **(complete) EULA Abandonment:** (bug) Fixed a loop-hole that allowed users to reach Home Screen by resarting the App from the EULA screen without accepting the EULA. More refactoring of main.dart, but succesful.
-*   **(complete) Restore Email Verification:** (bug) Restored email verification step for email/password users only; this step occurs immediately before the EULA Acceptance screen and updates Firebase authentication.
-*   **(complete) Haikuverse Logo:** Added an animated Haikuverse logo simulation to the authentication screen. Used a spirograph pattern with fixed frequencies, a color-changing text, and theme complimenting colors.
-*   **(complete) Automated Testing - User Verification:** Update `auth_screen.dart`, `user_profile.dart`, and `settings_tab.dart` for the the refactored sign-in and EULA processes.
-*   **(complete) Automated Testing - New User:** Add widget and unit testing for `verification_screen.dart` and `eula_acceptance_screen.dart`.
-*   **(complete) Automated Testing - Google Sign-in Connectors** Add widget and unit testing for `google_sign_in_button_connector.,dart` and `gsi_connector.dart`.
-*   **(complete) Automated Testing - Haikuverse Logo** Add widget and unit testing for `haikuverse_logo.dart`.
-*   **(complete) Nickname Updates to Public Records:** (bug) When the user updates thier nickname, the change should trigger an onUpdate cloud function that updates all public records, like profile image updates. 
-*   **(complete) PreferencesScreen - Constrained Layout:** Change the EULA, Privacy Statment, and Submit Feeback buttons to constrained layouts so they do not expand more than 512 pixels on the Chrome platform.
-*   **(complete) Customization Tab - Constrained Grid:** Change the achievements matrix so is does not expand more than 512 pixels wide on the Chrome platform.
-*   **(complete) Star Popup - Constrained Layout:** Change the Star Popup layout so is does not expand more than 900 pixels wide on the Chrome platform. Used a min() function for 90% media query or 900 pixels.
-*   **(complete) Star Popup - Action Listener:** Wrapped GestureDector and PointerScrollEvent in a Listener so the the mouse button scrolls on Web and the pinch motion works on Android.
-*   **(complete) Image Slots Screen - Constrained Layout:** Changed the Image Slots Screen layout so is does not expand more than 512 pixels wide on the Chrome platform.
-*   **(complete) Cloud Run Functions - Synch Profile Image:** (bug) Updated Cloud Run function syncprofileimageonupdate() to ensure it correctly updates documents where a user can be both the creator and the owner.
-*   **(complete) Cloud Run Functions - Synch Nickname:** (bug) Updated Cloud Run function syncnicknameonupdate() to ensure it correctly updates documents where a user can be both the creator and the owner.
-*   **(complete) Upgrade from ACL to Uniform:** Refactored `main.dart` and `cors.json` to support the Google sign-in pop-up window for the Web app. This was insanely painful security upgrade, using `gsutil cors set`.
-*   **(complete) Refactor Audio Player for Firebase Streaming:** Refactored `audio_player_provider.dart` to use signed URLs and StreamAudioSoruce() for greater efficiency and use less device memory. Also painful.
-*   **(complete) Service Layer - Audio Generation:** Moved the `generateHaikuAudio()` Cloud Function call from the UI state (`_MyAppState`) into the service layer (`FirestoreService`).
-*   **(complete) Configuration Service:** Manage endpoint URLs in `lib/constants/app_constants.dart` rather than hardcoding them directly in the service classes.
-*   **(complete) Audio Toolkit Modal Responsiveness:** (bug) Refactored `audio_toolkit_modal.dart` to manage its own local state, fixing a race condition between UI updates and the Firestore stream.
-*   **(complete) Automated Testing - Just Audio Player:** Update widget and unit testing for the refactoring of `audio_player_provider.dart` and `audio_toolkit_modal.dart` to use the service layer and signed URLs.
-*   **(complete) Automated Testing - Constellation Info Display:** Update widget and unit testing for the refactoring of `constellation_info_display.dart` to use dependency and injection and Uniform access to storage.
-*   **(complete) Automated Testing - Constellation Detail Modal:** Update widget and unit testing for the refactoring of `constellation_detail_modal.dart` to use dependency and injection and Uniform access to storage.
-*   **(complete) Haikuverse - Star Levels:** Implement star size and color level-up schema for 5, 10, and 25 likes. Add corona effects that follow the theme_provider.
-*   **(complete) Haikuverse - Fable Popup:** Add a top app bar icon button to popup the constellation fable text/image screen that is similar to the star popup, but without the tabs.
-*   **(complete) Haikuverse - Navigation Tooltip:** Add a navigation tooltip to the bottom of the navigation screen that fades upon the user's first interaction with the navigation area of the screen.
-*   **(complete) Automated Testing - Haikuverse:** Update `haikuverse_navigation_screen_test.dart` and `constellation_view_painter_test.dart` for star level effects, dissappearing tooltip, and icon for fable pop-up.
-*   **(complete) Automated Testing - Fable Popup:** Add regression detection coverage for `fable_detail_popup.dart`.
-*   **(complete) App Launcher Icon:** Created `assets/icon.png` and used `flutter pub run flutter_launcher_icons` to create icons. Created web/favicon.png separately due to 16-pixel size. 
-*   **(complete) FavoritesScreen - Star Names:** Add starname to the top of each haiku tile in the favorites list. Also updated automated test `favorites_screen_test.dart`.
-*   **(complete) Reorder Images Screen - Reorder Logic** Add `reorder_slots_screen.dart` with logic to reorder which save slots images are saved into using image drag-and-drop to target save slot. 
-*   **(complete) Reorder Images - Dependencies:** Add a link from `stars_screen.dart` to `reorder_images_screen.dart` and update `main.dart` with the `_saveReorderedImages()` callback.
-*   **(complete) Unpublish Update to Private Collection:** (bug) Update Cloud Run function deletepublishedstar() to remove `constellationId` from the /user/favorites colelction to match the /published_star collection.
-*   **(complete) Automated Testing - Reorder Images Screen:** Add unit and widget level testing for `reorder_images_screen.dart` and update `stars_screen_test.dart` for the reorder images feature.
-*   **(complete) Constellation Customization Screen - Constrained Layout:** Change the Constellation Customization Screen layout so is does not expand more than 750 pixels wide on the Chrome platform.
-*   **(complete) Audio Files Not Playing on Chrome:** (bug) Changed policy in firebase.json from 'require-corp' to 'credentialless', to give the browser permission to fetch the public audio from storage.googleapis.com.
-*   **(complete) Images/Audio Not Playing on Chrome:** (bug) Changed Firebase Hosting policy (COEP) and corrected service account IAM roles to resolve critical asset loading failures (403 Forbidden) on signed URLs.
-*   **(complete) Settings tab - Green Snackbar:** (bug) Replaced the green-colored snackbar and `Profile saved` comment with a theme_provider snackbar and `Nickname saved` comment. Updated `settings_tab_test.dart`.
-*   **(complete) StarsScreen - Loading Indicator Too Large:** (bug) The loading indicator for the Generate Image button is too large. Reduced it's size and added badding so the haiku text below it does not bounce.
-*   **(complete) StarsScreen - Remove Author Field:** Removed `Author` field from `stars_screen.dart` to free up screen space. Also updated 6 automated tests in `stars_screen_test.dart` for the refactor.
-*   **(complete) HomeScreen - Star Progress Tracker:** Add a star progress tracker with Text, Audio, Visual, and Publish milestones. It will fit into the space vacated by the naming toolkit. 
-*   **(complete) Publication Tab - Vector Search:** (bug) Publish_tab.dart unable to handle when Vector Search API returns a distance value that is a whole number rather than decimal values. Also updated testing.
-*   **(complete) Automated Testing - Star Progress Tracker:** Add regression detection for `star_progress_tracker.dart` and update `home_screen_test.dart` for the modifications that were made.
-*   **(complete) Pride Frame - Animated Heart Control:** Make the mobile heart in the animate frame turn-on and turn-off depending on whether the "Likes" flair is displayed or not displayed.
-*   **(complete) Interrupted Image Generation:** (bug) Fixed a data corruption issue due to a race condition if a user navigates away from an image in mid-generation by adding a callback to the correct haiku object.
-*   **(complete) Web Media Access Failures:** (bug) Resolved 401 Unauthorized errors for images on the web client. Updating Firebase Storage rules to allow public reads (relying on secure download tokens for access). 
-*   **(complete) Storage Bucket Access Failures:** (bug) Configured the Cloud Storage bucket's CORS policy to resolve browser errors from the Same-Origin Policy, allowing the web app to request and display media assets.
-*   **(complete) Web Caching - Themes:** Implemented Web App caching so themes are separated by user using the browser's shared preferences.
-*   **(complete) Web App - Theme Persistence:** (bug) Fixed a state management bug observed on the web where one user would inherit another's theme. The fix was applied to the shared multi-platform code.
-*   **(complete) Web App - Sequential Sign-in:** (bug) Fixed a state management bug in the Google Sign-in library that prevented a user from signing in twice in a row.
-*   **(complete) Android Stability - Web-only Crash:** (bug) Fixed a runtime crash on Android by adding a platform check (`kIsWeb`) in `main.dart` to a web-only Firebase function call.
-*   **(complete) Android Stability - Compile Error:** (bug) Fixed a compile error on Android by isolating web-only code in `settings_tab.dart` using a new conditional import structure (`web_reloader` files).
-*   **(complete) UI - Consistent Snackbar Colors:** Refactored multiple `SnackBar` widgets in `settings_tab.dart` to use theme-aware error colors instead of hardcoded values.
-*   **(complete) Automated Testing - SignOutProvider:** Update the unit test for `signout_provider.dart` to verify it calls the sign-out methods for both Google and Firebase when on the web.
-*   **(complete) Automated Testing - SettingsTab:** Update the widget test for `settings_tab.dart` to verify the sign-out button correctly triggers a page reload on the web and navigates correctly on mobile.
+* **Tap into the Collective Consciousness:** Discover what inspires the community through the `Zeitgeist Engine`. This unique feature analyzes creative activity across the platform to reveal trending themes, offering a real-time glimpse into the evolving pulse of the Haikuverse and providing new avenues for your own creative exploration.
+
+---
+## 2. Functional Block Diagram of the Haikuverse App
+
+```mermaid
+---
+config:
+  layout: elk
+  elk:
+    nodePlacementStrategy: "NETWORK_SIMPLEX"
+    "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "80"
+    "org.eclipse.elk.spacing.nodeNode": "60"
+  theme: "base"
+  themeVariables:
+    lineColor: "#555"
+    textColor: "#333"
+---
+flowchart LR
+
+%% ---------------------------------------------------------------------------
+%% Subgraph Definitions with Detailed Nodes
+%% ---------------------------------------------------------------------------
+
+ subgraph main_dart["**main.dart**"]
+    direction TB
+        Main["main - App Entry Point"]
+        Initialization["Initialization & DI"]
+        GlobalProviders["Global State Providers"]
+        subgraph MyAppWidgetState["_MyAppState (Central Logic)"]
+            direction LR
+            Listeners["Auth & Data Listeners"]
+            CoreLogic["Core Favorite/Asset Mgmt"]
+            UINav["UI Navigation State"]
+        end
+ end
+
+ subgraph UIScreens["**UI Screens**"]
+    direction TB
+    subgraph HomeScreenDef["HomeScreen"]
+      HaikuGenUI["Haiku Generation UI & Logic"]
+      StarNamingUI["Star Naming UI & Logic"]
+    end
+    subgraph FavoritesScreenDef["FavoritesScreen"]
+      FavoritesListUI["Favorites List & Audio UI"]
+    end
+    subgraph StarsScreenDef["StarsScreen"]
+      ImagePairingUI["Image Pairing UI & Logic"]
+      ReorderUI["Reorder Slideshow UI"]
+      ImageSlotsUI["Image Save Slots UI"]
+    end
+    subgraph ConstellationsScreenDef["Constellations Hub"]
+      PublishTab["Publish Tab"]
+      ManageTab["Manage Tab"]
+      ExploreTab["Explore Tab"]
+    end
+    
+    %% PreferencesScreen contains tabs and links
+    subgraph PreferencesScreenDef["PreferencesScreen"]
+        direction TB
+        subgraph SettingsTab["SettingsTab"]
+            ProfileUI["Profile Fields<br>& Image Picker"]
+            ThemeUI["Theme Carousel"]
+            UserActions["Save/SignOut Actions"]
+        end
+        subgraph CustomizationTabDef["CustomizationTab"]
+            AvatarStudio["AvatarStudio (Frame/Flair)"]
+            AchievementGallery["AchievementGallery"]
+        end
+        subgraph SharingTab["SharingTab"]
+            ShareSheet["OS Share Sheet"]
+        end
+    end
+
+    subgraph FollowersScreenDef["Followers Screen"]
+        FollowersScreen["FollowersScreen"]
+    end    
+
+    %% Legal & Feedback Screens
+    subgraph LegalFeedbackScreens["Legal, Feedback<br>& Notifications"]
+        direction TB
+        FeedbackScreen["FeedbackScreen"]
+        LegalScreens["EULA & Privacy Screens"]
+        NotificationsScreen["NotificationsScreen"]
+    end
+
+    subgraph AuthVerificationScreens["Auth & Verification Screens"]
+        AuthScreen["AuthScreen UI & Logic"]
+        EulaScreen["EULA Acceptance Screen"]
+        VerificationScreen["VerificationScreen<br>UI & Logic"]
+        GoogleSignInLogic["Google Sign-In (Plugin & GSI)"]
+    end
+
+    subgraph Haikuverse["Haikuverse Experience"]
+        direction TB
+        HaikuverseNavigationScreen["HaikuverseNavigationScreen"]
+        StarDetailPopup["StarDetailPopup"]
+        ProceduralGraph["Procedural Graph Generation"]
+        VectorArtPainter["Vector Art Painter"]
+        ExperienceTab["Haiku Tab (Slideshow/Audio)"]
+        LogbookTab["Logbook Tab (Comments)"]
+        PoetTab["Poet Tab (Follow/Achievements)"]
+        FableDetailPopup["FableDetailPopup"]
+        HaikuverseNavigationScreen --> ProceduralGraph & VectorArtPainter
+        StarDetailPopup --> ExperienceTab & LogbookTab & PoetTab
+        HaikuverseNavigationScreen -- "Shows Fable" --> FableDetailPopup
+    end
+ end
+
+ subgraph ClientServices["**Client-Side Services**"]
+    direction TB
+    subgraph AuthServiceFlutter["Auth & Verification Services"]
+      SignInMethod["signInWith..."]
+      CreateUserMethod["createUserWith..."]
+      SignInWithCredentialMethod["signInWithCredential"]
+      SignOutMethod["signOut"]
+      SendPasswordResetMethod["sendPasswordReset..."]
+      SendVerificationMethod["sendVerificationEmail"]
+    end
+    subgraph FirestoreServiceFlutter["FirestoreService"]
+      FSCore["Core Firestore Methods"]
+      FSFunctions["Cloud Function Triggers"]
+    end
+    subgraph GeminiServiceFlutter["GeminiService"]
+      GSGenHaiku["generateHaiku"]
+      GSGenNames["generateStarNames"]
+      GSGenFable["generateFable"]
+      GSGetAdvice["getTravelAdvice"]
+    end
+    subgraph VertexAIServiceFlutter["VertexAIService (Imagen)"]
+      VAISGenImgs["generateImages"]
+    end
+    subgraph StorageServiceFlutter["StorageService"]
+      SSUpload["uploadImageData"]
+      SSDelete["deleteFileByUrl"]
+    end
+ end
+
+ subgraph Backend["**Backend & External Services**"]
+    direction TB
+    subgraph FirebaseServices["Firebase Services"]
+        FirebaseAuthBackend[("Firebase<br>Authentication")]
+        FirestoreDatabaseBackend[("Cloud<br>Firestore")]
+        FirebaseStorageBackend[("Cloud<br>Storage")]
+        FirebaseAppCheck[("Firebase<br>App Check")]
+    end
+    subgraph CloudFunctionsBackend["Google Cloud Functions"]
+        direction TB
+        ContentGenFuncs["Content Generation"]
+        PublishingFuncs["Publishing & Lifecycle"]
+        SanitizationFuncs["Sanitization"]
+        SocialFuncs["Social & Moderation"]
+        FeedbackFuncs["Feedback & Admin"]
+        ZeitgeistFuncs["Zeitgeist Engine"]
+        GraphHealer["KG Maintenance (Scheduled & On-Demand)"]
+        DBTriggers["Database Triggers"]
+    end
+    subgraph CloudAPIs["External Cloud APIs"]
+        direction TB
+        GeminiAPI[("Gemini API")]
+        ImagenAPI[("Imagen API")]
+        EmbeddingAPI[("Embedding API")]
+        VectorSearchAPI[("Vector Search API")]
+        TextToSpeechAPI[("Text-to-Speech API")]
+    end
+ end
+
+%% ---------------------------------------------------------------------------
+%% Style Assignments using the 'style' command
+%% ---------------------------------------------------------------------------
+  style main_dart fill:#f8f8ff,stroke:# b0082,stroke-width:3px
+  style UIScreens stroke:#4b0082,stroke-width:3px
+  style ClientServices fill:#f8f8ff,stroke:#4b0082,stroke-width:3px
+  style Backend stroke:#4b0082,stroke-width:3px
+
+  style MyAppWidgetState fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style Haikuverse fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style HomeScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style FavoritesScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style StarsScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style ConstellationsScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style PreferencesScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style SettingsTab fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+  style CustomizationTabDef fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+  style SharingTab fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+  style FollowersScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style AuthVerificationScreens fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+  style LegalFeedbackScreens fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+
+  style FirebaseServices fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+  style FirestoreServiceFlutter fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+  style AuthServiceFlutter fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+  style StorageServiceFlutter fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+  style VertexAIServiceFlutter fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
+
+  style CloudFunctionsBackend fill:#E8F0FE,stroke:#4285F4,stroke-width:1px
+  style CloudAPIs fill:#E8F0FE,stroke:#4285F4,stroke-width:1px
+  style GeminiServiceFlutter fill:#EAE8FD,stroke:#6B5FED,stroke-width:1px
+
+%% ---------------------------------------------------------------------------
+%% Data Flow Connections (High-Level)
+%% ---------------------------------------------------------------------------
+  Main --> Initialization & GlobalProviders & MyAppWidgetState & AuthVerificationScreens
+  Listeners -- "Updates" --> CoreLogic
+  CoreLogic -- "Triggers calls via" --> FirestoreServiceFlutter
+  CoreLogic -- "Triggers calls via" --> StorageServiceFlutter
+  CoreLogic -- "Provides callbacks to" --> HomeScreenDef & FavoritesScreenDef & StarsScreenDef & ConstellationsScreenDef
+  HomeScreenDef -- "Generates content via" <--> GeminiServiceFlutter
+  FavoritesScreenDef -- "Plays audio via" --> GlobalProviders
+  StarsScreenDef -- "Generates images via" <--> VertexAIServiceFlutter
+  StarsScreenDef -- "Saves images via" <--> StorageServiceFlutter
+  ImagePairingUI -- "Launches" --> ReorderUI & ImageSlotsUI
+  
+  %% Connections for Preferences Screen
+  SettingsTab -- "Manages profile via" <--> FirestoreServiceFlutter
+  SettingsTab -- "Sanitizes content via" <--> SanitizationFuncs
+  SettingsTab -- "Signs out via" <--> AuthServiceFlutter
+  SettingsTab -- "Navigates to" --> LegalFeedbackScreens
+  CustomizationTabDef -- "Manages customizations via" <--> FirestoreServiceFlutter
+  SettingsTab -- "Navigates to" --> FollowersScreen
+  FollowersScreen -- "Fetches follower data via" --> FirestoreServiceFlutter
+  SharingTab--"Loads Images"--> StorageServiceFlutter
+  SharingTab--"Stream Listener"--> FirestoreServiceFlutter
+  SharingTab -- "Fetches stars via" --> FirestoreServiceFlutter
+
+  AuthVerificationScreens -- "Authenticates via" <--> AuthServiceFlutter
+  AuthScreen <--> GoogleSignInLogic
+  ConstellationsScreenDef -- "Manages & Explores via" <--> FirestoreServiceFlutter
+  ExploreTab -- "Gets advice via" <--> GeminiServiceFlutter
+  
+  %% Connections for Feedback & Notifications
+  FeedbackScreen -- "Submits feedback via" --> FirestoreServiceFlutter
+  NotificationsScreen -- "Manages notifications via" --> FirestoreServiceFlutter
+  GlobalProviders -- "Provides auth state to" --> NotificationsScreen
+  
+  %% Connections for the corrected Haikuverse block
+  HaikuverseNavigationScreen -- "Fetches data from" <--> FirestoreServiceFlutter
+  ProceduralGraph -- "Provides data to" --> VectorArtPainter
+  HaikuverseNavigationScreen -- "Shows popup" --> StarDetailPopup
+  StarDetailPopup -- "Manages social actions via" <--> FirestoreServiceFlutter
+  ExploreTab <--> Haikuverse
+
+  FirestoreServiceFlutter <--> FirestoreDatabaseBackend
+  FirestoreServiceFlutter -- "Triggers" --> PublishingFuncs & SocialFuncs & FeedbackFuncs
+  GeminiServiceFlutter <--> ContentGenFuncs
+  VertexAIServiceFlutter <--> ImagenAPI
+  StorageServiceFlutter <--> FirebaseStorageBackend
+  AuthServiceFlutter <--> FirebaseAuthBackend
+  CloudFunctionsBackend -- "Use" --> CloudAPIs
+  ContentGenFuncs <--> GeminiAPI
+  ContentGenFuncs <--> TextToSpeechAPI
+  SanitizationFuncs <--> GeminiAPI
+  PublishingFuncs <--> VectorSearchAPI
+  PublishingFuncs <--> EmbeddingAPI
+  DBTriggers -- "Triggered by writes to" --> FirestoreDatabaseBackend
+
+  UIScreens -- "Initiates actions through" --> ClientServices
+  ClientServices -- "Orchestrates calls to" --> Backend
+  Initialization <--> FirebaseAppCheck
+  AuthScreen --> EulaScreen
+  AuthScreen --> VerificationScreen
+  VerificationScreen --> EulaScreen
+  EulaScreen --> HomeScreenDef
+
+  %% Zeitgeist Engine Data Flow
+  ZeitgeistFuncs -- "Analyzes & Writes to" --> FirestoreDatabaseBackend
+  FirestoreServiceFlutter -- "Provides Zeitgeist Stream to" --> ExploreTab
+```    
+
+---
+## 3. Core Architecture & Services
+
+The Haikuverse application is built on a modern, scalable technology stack leveraging the Flutter framework for the front end and Google Cloud services for the backend. The table below provides a high-level overview of the key technologies employed in each architectural layer.
+
+| Layer                  | Technology / Service                                                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Cross-Platform App** | Flutter, Dart, Provider, share_plus (Native OS Share Sheet)                                                                                                 |
+| **Authentication**     | Firebase Authentication, Google Sign-In (GSI for Web), Firebase App Check                                              |
+| **Database**           | Cloud Firestore (NoSQL)                                                                                                |
+| **File Storage**       | Firebase Storage (Token & Signed URLs)                                                                                 |
+| **Serverless Backend** | Google Cloud Functions (Node.js)                                                                                       |
+| **Generative AI**      | **Vertex AI**: Gemini (Text), Imagen 3 (Images), Text-to-Speech, Embedding API                                         |
+| **Semantic Search**    | Vertex AI Vector Search                                                                                                |
+
+The following sections provide a detailed breakdown of the application's core components, organized to mirror these logical layers. This top-down exploration begins with the central application orchestrator and moves through the user interface, data modeling, service abstractions, and backend logic.
+
+### 3.1 Application Core (`main.dart`)
+
+This file serves as the primary entry point and central orchestrator of the Flutter application.
+
+* **Initialization Sequence (`main()` function):**
+    * Ensures Flutter framework bindings are initialized (`WidgetsFlutterBinding.ensureInitialized()`) before any Firebase or Flutter-specific APIs are called.
+    * Asynchronously initializes Firebase services (`Firebase.initializeApp()`) using platform-specific configurations from `firebase_options.dart`.
+    * Instantiates and initializes key singleton dependencies for Dependency Injection:
+        * `SharedPreferences`: For local caching of user-specific preferences and UI tracking states within providers.
+        * `FirebaseAuth`: Singleton instance for Firebase Authentication.
+        * `http.Client`: Singleton instance for making HTTP requests, passed to services interacting with Cloud Functions.
+        * Custom Services: `AuthService`, `PasswordResetService`, `EmailVerificationService`, `FirestoreService`, `VertexAIService` (for client-side Imagen calls), `StorageService` (for client-side Storage interactions), and `GeminiService` (for client-side calls to fable/advice Cloud Functions).
+
+* **Global State Management Setup (`MultiProvider`):** Wraps the root `MyApp` widget to make the following providers accessible throughout the application:
+    * `ThemeProvider`: Manages the application's visual theme, using `SharedPreferences` and `FirebaseAuth` for user-specific, device-cached theme preferences.
+    * `NicknameProvider`: Manages the user's display nickname, using `SharedPreferences` and `FirebaseAuth` for user-specific, device-cached nickname persistence.
+    * `IndexProvider`: Manages the integer index controlling navigation within the `StarsScreen` and `PublishTab`.
+    * `SignOutProvider`: Handles the application's sign-out flow and related state, using `FirebaseAuth`.
+    * `AuthEmailProvider`: Tracks and provides the authenticated user's email address, using `FirebaseAuth`.
+    * `CurrentImageProvider`: Manages the locally persisted tracking state (via `SharedPreferences`) of the last viewed image URL and its unsaved/saved status for each haiku, primarily used by `StarsScreen`.
+    * `AudioPlayerProvider`: Manages the shared `just_audio` player instance and its state for audio playback.
+
+* **Root `MyApp` Widget (Application Container):** The top-level `StatefulWidget`.
+    * Receives instances of all core services (`AuthService`, `FirestoreService`, etc.) and `FirebaseAuth` via constructor arguments for dependency injection.
+    * The `_MyAppState` manages critical UI navigation state and the local, real-time reflection of the user's favorite haikus.
+
+* **`_MyAppState` - Central Application State and Logic:**
+    * `_currentIndex`: Integer controlling the active screen via the `BottomNavigationBarWidget` and `IndexedStack`.
+    * `_favorites`: `List<Haiku>` serving as a local, in-memory reflection of the real-time favorite haikus streamed from Cloud Firestore.
+    * `_maxFavorites`: Defines the limit for favorite haikus.
+    * `_favoritesSubscription`, `_authStateSubscription`,`_notificationsSubscription`: StreamSubscriptions for managing listeners to Firestore favorites, Firebase auth state, and new user notifications respectively.
+    * `initState():` Sets up `_authStateSubscription` to trigger `_subscribeToFavorites()` and `_subscribeToNotifications()` on login. On logout, it triggers the corresponding unsubscribe methods. The explicit Google Sign-Out logic is handled by the `SignOutProvider` to better manage the application's state.
+    * `_subscribeToFavorites(String userId)`: Listens to the user's Firestore favorites collection via `firestoreService.getFavoritesStream()`, updating the local `_favorites` list reactively.
+    * `_unsubscribeFromFavorites()`: Cancels `_favoritesSubscription`, clears the local `_favorites` list, and resets the `IndexProvider`.
+    * `_toggleFavorite(Haiku haiku)`: Manages adding/removing haikus from Firestore via `firestoreService.addFavorite`/`removeFavorite`. Coordinates associated Firebase Storage image and audio file deletion (via `_deleteImageFromUrl` and `_deleteStorageFileByUrl` which use `storageService`) and `IndexProvider` adjustments. Relies on the Firestore stream for local list updates.
+    * `_isFavorite(String haikuText)`: Checks if a haiku text exists in the local `_favorites` list.
+    * `_removeFavorite(Haiku haiku)`: Explicitly removes a haiku from Firestore via `firestoreService.removeFavorite`. Also triggers deletion of the star from the public `/published_stars` collection and its Vector Search index via `firestoreService.triggerDeletePublishedStarFunction`. Manages Storage cleanup and `IndexProvider` adjustments.
+    * `_associateImageUrlToHaiku(String haikuId, String newImageUrl, int slotIndex)`: Saves an image URL to a specific haiku in Firestore via `firestoreService.updateFavorite`. Manages deletion of any overwritten image from Storage (via `storageService`) and updates `CurrentImageProvider`.
+    * `_triggerAudioGeneration(Haiku haiku, String voiceName, double speakingRate)`: Orchestrates audio generation by calling `firestoreService.triggerGenerateHaikuAudio()`, which handles the secure Cloud Function invocation. It then updates the local state for immediate UI feedback.
+    * `dispose()`: Cancels `_authStateSubscription`, `_favoritesSubscription`, and closes the `httpClient`.
+
+* **Root Application UI Structure (`MaterialApp` Widget):**
+    * Sets the application title, applies the current theme from `ThemeProvider`.
+    * Uses a `FutureBuilder` to call the `_getInitialRoute` helper method, which asynchronously determines the correct starting screen (`/auth`, `/eula-acceptance`, or `/home`) by checking both the Firebase Authentication state and the user's EULA acceptance status in Firestore.
+    * Defines `routes` for navigation, injecting services into screens.
+
+* **`_buildHomeScreen()` - Main Application UI Construction (`Scaffold`):**
+    * `AppBar`: Dynamically titled based on `_currentIndex` and includes a real-time notifications icon driven by the `_hasNotifications` flag.
+    * `body: IndexedStack`: Efficiently renders the active screen (`HomeScreen`, `FavoritesScreen`, `StarsScreen`, `ConstellationsScreen`, `PreferencesScreen`) while maintaining the state of inactive ones. Passes the reactive `_favorites` list and relevant callbacks/services to child screens.
+    * `bottomNavigationBar: BottomNavigationBarWidget`: Custom widget for main navigation, themed and driven by `_currentIndex` and `_onItemTapped`.
+
+* **`_onItemTapped(int index)` - Bottom Navigation Handler:** Updates `_currentIndex` via `setState` to switch displayed screens.
+
+### 3.2 User Interface Layer (UI Screens, Widgets & Theming)
+
+This layer encompasses all visual aspects of the application, from the top-level screens to the reusable widgets that compose them, and the theming system that defines their appearance. It is responsible for presenting data to the user and capturing their input.
+
+#### Main Screens
+
+These are the primary top-level screens accessible via the bottom navigation bar, each responsible for a distinct area of user interaction and content display.
+
+*   **`home_screen.dart` - Haiku & Star Name Generation:**
+    *   **Purpose:** The primary creative interface where users generate haiku poems and assign them unique star names using Google Gemini.
+    *   **Key UI:** `TextField` for prompts, "Generate Haiku" `ElevatedButton`, `SelectableText` for haiku display, a Star Naming Toolkit, a `FavoriteButton`, and a `StarProgressTracker` checklist.
+    *   **Logic:**
+        *   Manages local state for prompt input (`_promptController`), API loading (`_isLoading`), and haiku response (`_response`).
+        *   Injected `GeminiService` for backend calls.
+        *   `_buildPrompt()`: Constructs the full prompt for Gemini, including user input and context from existing favorites.
+        *   `_generateContent()`: Orchestrates haiku generation by calling the `haikuBotCloud` Cloud Function via `GeminiService`.
+        *   `_handleGenerateNames()`: Calls the `generateStarNames` Cloud Function (via `GeminiService`) to fetch name suggestions.
+        *   Displays the `StarProgressTracker` checklist after a haiku has been favorited, replacing the naming toolkit. This provides a clear, at-a-glance status of the creative work's completion (Audio, Visuals, Publish).
+
+*   **`favorites_screen.dart` - Favorites Display, Removal, and Voice Pairing Interface:**
+    *   **Purpose:** Displays a list of the user's favorite haikus, allows removal, and provides an interface to configure and play Text-to-Speech audio narrations.
+    *   **Key UI:** `ListView.builder` rendering `ListTile`s for each haiku. Each tile shows haiku text, a star name (if assigned), an `IconButton` to trigger the `AudioToolkitModal`, and a delete `IconButton`.
+    *   **Logic:**
+        *   Receives the live `favorites` list and callbacks from `_MyAppState`.
+        *   Deletion: `onFavoriteRemoved` callback triggers `_MyAppState._removeFavorite`.
+        *   Audio: `onGenerateAudioRequested` callback (via `AudioToolkitModal`) triggers `_MyAppState._triggerAudioGeneration`.
+
+*   **`stars_screen.dart` - AI Image Pairing and Favorite Exploration Interface:**
+    * **Purpose:** Enables users to generate and associate AI-powered images (Imagen 3 via `VertexAIService`) with their favorite haikus and manage the slideshow order.
+    * **Key UI:** Three-column layout with navigation arrows. Central column displays the current haiku, its associated image, and image save slots. Includes a link to the reordering screen.
+    * **Logic:**
+        * Uses `IndexProvider` for navigation and `CurrentImageProvider` for local image state tracking.
+        * Image Generation: Calls the injected `VertexAIService.generateImages()`. Uploads image bytes to Firebase Storage via `StorageService`.
+        * Image Saving: Navigates to `ImageSlotsScreen`. On confirmation, `_MyAppState._associateImageUrlToHaiku` is called.
+        * Image Reordering: Launches `ReorderImagesScreen` to allow users to drag-and-drop their three images into a new order for the slideshow.
+
+*   **`constellations_screen.dart` - Haikuverse Community Hub & Constellation Management:**
+    *   **Purpose:** Main hub for publishing haikus, managing owned constellations, and exploring the Haikuverse.
+    *   **Key UI:** `DefaultTabController` with a `TabBar` for "Publish", "Manage", and "Explore" tabs.
+    *   **Logic:** Acts as a container for `PublishTab`, `ManageTab`, and `ExploreTab`, passing down necessary services and data streams.
+
+*   **`preferences_screen.dart` - User Profile Management and Preferences Hub:**
+    *   **Purpose:** A top-level container that hosts multiple tabs for user-centric settings and community interactions.
+    *   **Key UI:** `DefaultTabController` with a `TabBar` for "Settings", "Customization", and "Sharing" tabs.
+    *   **Logic:** Initializes the `TabController` and provides the framework for its child tabs, passing down injected services like `FirestoreService` and `FirebaseAuth`.
+
+*   **`settings_tab.dart` - Core User Settings:**
+    *   **Purpose:** Allows users to manage their profile (nickname, profile picture), application theme, and access legal information and feedback forms.
+    *   **Key UI:** `ProfileImagePicker` for avatar, `TextFormField` for nickname, "Save Changes" and "Sign Out" buttons, `CarouselSlider` for theme selection, and links to legal/feedback screens.
+    *   **Logic:**
+        *   Loads user profile, prioritizing Firestore.
+        *   `_saveUserProfile()`: Calls `sanitizeNickname` Cloud Function for server-side validation and Gemini safety checks before updating Firestore.
+        *   `_handleImageUploadAndSanitization()`: Orchestrates profile image updates by calling `StorageService` to handle the platform-aware upload before invoking the `sanitizeProfileImage` Cloud Function for safety checks.
+        *   Uses `ThemeProvider` for theme changes and `SignOutProvider` for sign-out.
+
+*   **`customization_tab.dart` - Profile and Avatar Customization:**
+    *   **Purpose:** Enables users to personalize their public-facing avatar with decorative frames and flair earned through achievements.
+    *   **Key UI:**
+        *   `AvatarStudio`: A central component that displays the user's profile picture, the currently selected animated frame, and any equipped flair.
+        *   `AchievementGallery`: A `GridView` that displays all possible achievements, showing which are locked and unlocked.
+    *   **Logic:**
+        *   Uses a `StreamBuilder` to get the user's real-time `PublicProfile` from Firestore.
+        *   The `AchievementGallery` allows users to select unlocked achievements as "flair." This selection is saved to their `PublicProfile` in Firestore via `FirestoreService`.
+        *   The `AvatarStudio` reads the selected frame and flair from the `PublicProfile` to render the final customized avatar.
+
+*   **`sharing_tab.dart`  - Haiku Card Sharing & Outreach:**
+    *   **Purpose:** This tab is designed to extend the Haikuverse's positive impact beyond the app itself. It provides a simple, visual way for users to share their creations with friends and family, fostering connection and well-being. This serves as an organic marketing and outreach channel, turning each creation into a potential "trading card" that can brighten someone's day.
+    *   **Key UI:** A `GridView` displaying all of the user's published stars. Tapping a star opens a dialog that previews a shareable image card. An instructional banner at the bottom of the screen improves feature discoverability.
+    *   **Logic:**
+        *   Uses a `StreamBuilder` to get a real-time list of the user's published stars from Firestore.
+        *   Leverages the `screenshot` package to capture a beautifully formatted widget as an image in memory.
+        *   Integrates the `share_plus` package to invoke the native OS share sheet, providing a seamless sharing experience on both mobile and web platforms.
+
+*   **`followers_screen.dart` - Social Connection Management:**
+    *   **Purpose:** A standalone screen, accessible via a link on the Settings Tab, for managing social connections. It displays a rich, scrollable list of users who are following the current user.
+    *   **Key UI:** A `Scaffold` with an `AppBar` containing a `ListView` of follower cards. Each card shows the follower's avatar, nickname, follower count, and a dynamic button to "Follow Back" or "Unfollow", fostering reciprocal community engagement.
+    *   **Logic:**
+        *   Uses a `FutureBuilder` to call the `getFollowersDetails` Cloud Function (via `FirestoreService`) on initialization. This function securely fetches and consolidates all necessary data for the followers list.
+        *   Handles follow/unfollow actions by calling the respective `followUser`/`unfollowUser` Cloud Functions and refreshing the list state.
+
+*   **`notifications_screen.dart` - Centralized User Notification Hub:**
+    *   **Purpose:** Provides a centralized, real-time feed of all user-specific notifications.
+    *   **Key UI:** A scrolling list of notification cards, tailored to different types (new follower, achievement unlocked, comment pending moderation). Includes actions on comment notifications.
+    *   **Logic:**
+        *   Listens to a real-time stream from the user's `/notifications` subcollection.
+        *   Handles user interactions such as dismissing notifications or triggering moderation-related Cloud Functions.
+
+*   **`feedback_screen.dart` - Direct User Feedback Submission:**
+    *   **Purpose:** Provides a private, persistent communication channel for users to submit direct, categorized feedback.
+    *   **Key UI:** A "progressive disclosure" list that dynamically adds new feedback slots as the user submits entries.
+    *   **Logic:**
+        *   Uses a `StreamBuilder` to listen for real-time updates to the user's feedback items.
+        *   Calls `FirestoreService` to save new, timestamped revisions for each feedback item, creating a full audit trail.
+
+*   **`explore_tab.dart` - Haikuverse Discovery and Navigation Interface:**
+    *   **Purpose:** Provides tools for users to discover constellations by theme, browse their known universe, view community trends, and launch into the `HaikuverseNavigationScreen`.
+    *   **Key UI:**
+        *   Top section: Displays the selected constellation's fable image/text and a `MiniConstellationGraphView`.
+        *   Bottom section: `ToggleButtons` for "Discover," "Known," "Zeitgeist," and "Launch" toolkits.
+    *   **Logic:**
+        *   **"Discover" Mode:** Calls `getThemeBasedConstellationRecommendations` Cloud Function to query the "fables" Vector Search index.
+        *   **"Known" Mode:** Fetches and merges three distinct lists of constellations (private owned, public subscribed, and followed poets').
+        *   **"Zeitgeist" Mode:** Renders the `ZeitgeistMap` widget.
+        *   **State Persistence:** Robustly persists user selections and search results to `SharedPreferences`.
+        *   **Data Integrity:** Validates constellation data and neighbors against Firestore in real-time.
+
+*   **`haikuverse_navigation_screen.dart` - Immersive 2D Constellation Visualization:**
+    *   **Purpose:** Provides a dynamic, interactive 2D vector art representation of a selected constellation.
+    *   **Key UI:** Full-screen `CustomPaint` driven by `ConstellationViewPainter`.
+    *   **Logic:**
+        *   Fetches star data for the constellation.
+        *   **Procedural Generation:** Uses a heuristic-based state machine to algorithmically determine the positions and connections of stars.
+        *   **Vector Art Rendering:** `ConstellationViewPainter` draws stars (with star names), connections, and handles pan/zoom gestures.
+        *   **Star Focusing:** Animates pan and zoom onto a tapped star, displaying its details in a `StarDetailPopup`.
+    *   **Vector Art Rendering:** `ConstellationViewPainter` draws stars (with star names), connections, and handles pan/zoom gestures. Stars are rendered with dynamic visual tiers—including size, color, and unique corona effects—that correspond to their community like counts, providing immediate visual feedback on their popularity.    
+
+#### Supporting Screens & Modals
+
+These components provide focused UIs for specific tasks or display contextual information.
+
+* **`auth_screen.dart` & `verification_screen.dart`:** A pair of screens that manage the entire user authentication and onboarding lifecycle. `AuthScreen` handles sign-in/sign-up logic and orchestrates the navigation to subsequent steps. `VerificationScreen` provides a waiting room for new email/password users to verify their email address before they can proceed.
+*   **`eula_acceptance_screen.dart`:** A critical screen in the new user onboarding flow. It displays the End-User License Agreement text, requires the user to formally accept the terms via a checkbox, and upon confirmation, finalizes the user's profile creation in Firestore before navigating them to the `HomeScreen`.
+*   **`image_slots_screen.dart`:** Allows users to choose one of three slots to save a generated image for a haiku.
+*   **`reorder_images_screen.dart`:** Provides a simple drag-and-drop interface for users to change the display order of the three images associated with a haiku for its slideshow.
+*   **`audio_toolkit_modal.dart`:** Modal for configuring and playing TTS audio for a haiku.
+*   **`constellation_detail_modal.dart`:** Modal to show details of a selected constellation and confirm publishing.
+*   **`constellation_customization_screen.dart`:** Allows constellation owners to generate and save AI-created fables and images, and manages the knowledge graph update workflow.
+
+#### Reusable UI Widgets (`lib/widgets/`)
+
+This directory houses custom, reusable Flutter widgets that promote UI consistency and modularity.
+
+*   **`bottom_navigation_bar.dart`:** The main themed bottom navigation bar.
+*   **`profile_image_picker.dart`:** A circular widget for displaying and updating a user's profile picture.
+*   **`overwrite_confirmation_modal.dart`:** An `AlertDialog` to confirm overwriting an image in a save slot.
+*   **`star_progress_tracker.dart`:** A checklist widget that uses animated status cards to indicate the completion of the three post-creation milestones: Audio Narration, Slideshow Images (with granular status for all three image slots), and final publication to the Haikuverse.
+*   **`star_preview.dart`:** Displays a preview of a single `Haiku` with its star name, text, and an auto-playing image slideshow.
+*   **`constellation_info_display.dart`:** A reusable card to display key information about a constellation.
+*   **`constellation_view_painter.dart`:** A `CustomPainter` for rendering the full 2D vector art constellation graph.
+*   **`mini_constellation_graph_view.dart`:** A widget displaying a simplified, interactive graph preview of a constellation and its neighbors.
+*   **`star_slideshow.dart`:** A slideshow of images for a star, with duration dynamically linked to the star's audio `speakingRate`.
+*   **`star_detail_popup.dart`:** A detailed, interactive, tabbed `AlertDialog` for a single `PublishedStar`.
+    *   **"Haiku" Tab:** The primary art-focused view with synchronized audio and image slideshow playback.
+    *   **"Logbook" Tab:** A real-time, paginated list of approved comments and an interface for submitting new comments.
+    *   **"Poet" Tab:** Displays the creator's public profile, including their customized avatar (with animated frame and flair), nickname, follower count, and a list of their earned achievements. Includes a dynamic follow/unfollow button.
+*   **`fable_detail_popup.dart`:** A focused, dedicated screen that displays a constellation's lore, including its AI-generated fable image and text, as well as metadata like the current owner and creation date.
+*   **`zeitgeist_map.dart`:** A `CustomPaint` widget that visualizes trending themes using an Archimedean Spiral layout algorithm.
+*   **`avatar_studio.dart`:** The central component in the `CustomizationTab` that combines the user's profile picture, a selected animated frame, and equipped flair into a single composite avatar.
+*   **`achievement_gallery.dart`:** A `GridView` that displays all possible achievements, indicating their locked/unlocked status and allowing unlocked achievements to be selected as "flair." It also defines the `AchievementData` and `FlairData` classes that serve as the source of truth for all achievements in the app.
+*   **`haikuverse_logo.dart`:** A self-contained, animated logo widget prominently featured on the `AuthScreen`. It uses multiple `AnimationController`s and a `CustomPainter` to render a procedurally generated, multi-colored spirograph pattern, creating a high-fidelity and visually engaging introduction to the application.
+*   **Animated Frame Widgets (`lib/widgets/frames/`):** A collection of polymorphic, self-contained animated widgets (`CometFrameWidget`, `PrideFrameWidget`, `VineFrameWidget`, etc.) that all extend the abstract `AnimatedFrameWidget` class. Each frame manages its own `AnimationController` and `CustomPainter` to render unique, dynamic visual effects around the user's avatar. They are designed to be "smart," reacting to equipped flair by rendering burst effects or other interactive elements.
+*   **Platform-Aware Web Helpers:** The application uses a robust conditional import/export pattern to isolate web-only JavaScript interop code from the native mobile build, preventing compilation errors. This is achieved through "connector" files that export either a real web implementation or an empty mobile placeholder (stub).
+    *   **Google Sign-In Web Helpers (`gsi_*.dart` & `google_sign_in_button_*.dart`):** A suite of files that uses this pattern to provide the official, browser-rendered Google button on the web, while seamlessly falling back to the standard `google_sign_in` plugin on mobile. The web implementation (`google_sign_in_button_web.dart`) uses a global callback holder (`_GsiCallbackHolder`) as a deliberate design to robustly manage the JavaScript button's state across sign-out/sign-in cycles, preventing stale callback errors.
+    *   **Web Page Reloader (`web_reloader_*.dart`):** This utility uses the same conditional import pattern to provide a platform-aware function (`reloadWebPage()`) that forces a full page reload on the web. This is used during the sign-out flow to clear any lingering state from external JavaScript libraries, ensuring a clean session for the next user.
+
+#### Application Theming System
+
+*   **`theme_data.dart`:** Central repository for all predefined `ThemeData` objects.
+*   **`theme_provider.dart`:** A `ChangeNotifier` that manages the active theme and persists the user's selection to `SharedPreferences`.
+
+### 3.3 Data Models (`lib/models/`)
+
+The application's data models serve as a crucial contract for structuring data across the client, Firestore, and backend functions, ensuring type safety and consistency.
+
+*   **`haiku.dart` (`Haiku`):** Represents a user's private creative work, including text, prompts, associated image/audio metadata, and star name. Stored in `/users/{uid}/favorites/`.
+*   **`user_profile.dart` (`UserProfile`):** Represents a user's private data (`email`, etc.). Merged with `PublicProfile` for a complete view. Stored in `/users/{uid}`.
+*   **`public_profile.dart` (`PublicProfile`):** Represents a user's public-facing data, including `nickname`, `pictureUrl`, `followerCount`, `achievements`, and avatar customizations (`selectedFrameId`, `selectedFlair`). Stored in `/public_profiles/{uid}`.
+*   **`published_star.dart` (`PublishedStar`):** Represents a haiku that has been published to the Haikuverse, containing copies of the essential creative data. Stored in `/published_stars/{haikuId}`.
+*   **`constellation.dart` (`Constellation`):** Represents a thematic collection of stars, forming a node in the knowledge graph. Stores content (`fableText`, `fableImageUrl`), metadata (`starCount`, owner/creator info), and graph connections (`semanticNeighborIds`). Stored in `/constellations/{constellationName}`.
+*   **`comment.dart` (`Comment`):** Represents a single comment on a `PublishedStar`, with status (`pending_approval`, `approved`, etc.). Stored in `/published_stars/{starId}/comments/{commentId}`.
+*   **`feedback_item.dart` & `feedback_category.dart`:** Defines the structure for the user feedback system (`FeedbackItem`, `FeedbackRevision`, `FeedbackCategory` enum), ensuring a private and auditable trail of submissions. Stored in `/feedback/{uid}/items/`.
+*   **`notification.dart`:** Represents a user notification, with a `NotificationType` enum to differentiate between events like new comments, followers, or achievements. Stored in `/users/{uid}/notifications/`.
+*   **`follower.dart` (`Follower`):** A consolidated, read-only model used to represent the detailed information of a single follower, as returned by the `getFollowersDetails` Cloud Function. Includes `uid`, `nickname`, `pictureUrl`, `followerCount`, and `isFollowingBack`.
+*   **`zeitgeist.dart`:** Represents the structure of the Zeitgeist document (`Zeitgeist`, `ZeitgeistTheme`, `ZeitgeistCandidate`), capturing the community's trending themes. Stored in `/app_meta/zeitgeist`.
+
+### 3.4 Client-Side Service Layer (`lib/services/`)
+
+This layer abstracts interactions with Firebase, Google Cloud services, and backend Cloud Functions, promoting testability and modularity.
+
+*   **`auth_service.dart` (`AuthService`):** Encapsulates Firebase Authentication operations: `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`, `signInWithCredential` (for OAuth providers like Google), `signOut`, `sendPasswordResetEmail`.
+*   **`password_reset_service.dart` (`PasswordResetService`):** Handles sending password reset emails via Firebase Authentication (`sendPasswordResetEmail`).
+*   **`email_verification_service.dart` (`EmailVerificationService`):** Manages sending email verification links to users (`sendVerificationEmail`).
+*   **`firestore_service.dart` (`FirestoreService`):**
+    *   **Purpose:** This service acts as the primary implementation of the **Repository Pattern** for the application. It abstracts all data sources (Firestore, Cloud Functions) behind a single, consistent API, decoupling the UI and business logic from the specific data persistence and backend implementation details. This makes the application more modular, testable, and easier to maintain. The service's responsibilities are broken down as follows:
+    *   **User Profile & Public Data:** `getUserProfile`, `createInitialUserData`, `updateUserProfile`, `getPublicProfile`, `getPublicProfileStream`, `updateUserCustomizations` (for avatar frames/flair).
+    *   **Favorites:** `getFavoritesStream` (real-time listener), `addFavorite`, `removeFavorite`, `updateFavorite`, `updateNicknameInFavorites` (batch update).
+    *   **Published Stars & Constellations (CRUD & Queries):**
+        *   `getPublishedStarDetails`, `getConstellationDetails`.
+        *   `getStarsForConstellation` (fetches all stars for a given constellation).
+        *   `getOwnedConstellationsStream` (real-time listener for constellations owned by a user).
+        *   `getUserSubscribedConstellationsDetails` (fetches constellations a user has published to).
+        *   `setConstellationPublic` and `setConstellationDiscoverable` (updates constellation flags).
+        *   `getStarHaikuTextsForConstellation` (fetches haiku texts for fable context).
+        *   `getKnownDiscoverableConstellations` (fetches discoverable constellations a user owns or is a member of).
+        *   `getValidatedNeighborIds` (checks if a list of constellation IDs exist and are discoverable).
+        *   `getConstellationStream` (real-time listener for a single constellation).
+        *   `getPrivateOwnedConstellations`, `getPublicSubscribedConstellations`, and `getFollowedConstellations` (fetches distinct lists for the "Known" toolkit).
+    *   **Cloud Function Triggers (via injected `http.Client`):**
+        *   `getConstellationRecommendations` (calls `generateConstellationRecommendations` CF).
+        *   `triggerPublishStarFunction` (calls `publishStar` CF).
+        *   `triggerDeletePublishedStarFunction` (calls `deletePublishedStar` CF).
+        *   `triggerSuggestConstellationNamesFunction` (calls `suggestConstellationNames` CF).
+        *   `triggerSaveConstellationCustomizations` (calls `saveConstellationCustomizations` CF).
+        *   `getThemeBasedConstellationRecommendations` (calls `getThemeBasedConstellationRecommendations` CF for Explore Tab).
+        *   `getFollowersDetails` (calls `getFollowersDetails` CF).
+        *   `triggerGenerateHaikuAudio` (calls `generateHaikuAudio` CF).
+    *   **Like Management:** `getStarLikeCountStream` (real-time like count), `hasUserLikedStar`, `likeStar`, `unlikeStar`.
+    *   **Comment Management:**
+        *   `getStarCommentsStream` (real-time, paginated stream for approved comments).
+        *   `submitStarComment`, `editStarComment`, `deleteStarComment` (call backend Cloud Functions).
+        *   `moderateStarComment`, `reportAbuse` (call moderation-related Cloud Functions).
+    *   **Notifications:**
+        *   `getUserNotificationsStream` (real-time listener for user notifications).
+        *   `deleteNotification` (deletes a specific notification document).
+    *   **Follow System:**
+        *   `followUser`, `unfollowUser` (call backend Cloud Functions).
+        *   `isFollowingUserStream` (real-time listener for follow status).
+    *   **Zeitgeist:**
+        *   `getZeitgeistStream` (real-time listener for the `/app_meta/zeitgeist` document).
+    *   **Single Star Stream:** `getPublishedStarStream` (real-time listener for a single published star's data).
+    *   **Feedback Management:**
+        *   `getFeedbackItemsStream`: Provides a real-time stream of a user's existing `FeedbackItem` documents.
+        *   `submitFeedbackRevision`: Executes an atomic batch write to create a new revision and update the parent `FeedbackItem`.
+
+*   **`gemini_service.dart` (`GeminiService`):**
+    *   **Purpose:** Abstracts calls to Cloud Functions that specifically use Gemini for text generation tasks other than haikus.
+    *   **Methods:**
+        *   `generateFable()`: Calls the `generateConstellationFable` Cloud Function.
+        *   `getTravelAdvice()`: Calls the `getTravelAdvice` Cloud Function.
+        *   `generateStarNames()`: Calls the `generateStarNames` Cloud Function.
+    *   Uses an injected `http.Client`.
+
+*   **`storage_service.dart` (`StorageService`):**
+    * **Purpose:** Encapsulates all Firebase Storage operations, including platform-aware profile picture uploads and deleting files (images, audio).
+    * **Methods:**
+        * `uploadImageData(Uint8List data, String path, String contentType)`: Uploads image data.
+        * `deleteFileByUrl(String? fileUrl)`: Deletes any file (image or audio) from Storage given its download URL. Handles `gs://` and `https://firebasestorage.googleapis.com` URLs.
+        * `uploadProfileImage(XFile image, String path)`: Handles the platform-aware upload of a profile picture, using `putFile` on mobile for memory efficiency and `putData` on the web.
+    *   Used by `StarsScreen(via_MyAppState)` for generated haiku images, `SettingsTab` for profile pictures, `_MyAppStatefor` audio file cleanup, and `ConstellationCustomizationScreen` for fable images.
+
+*   **`vertex_ai_service.dart` (`VertexAIService`):**
+    *   **Purpose:** Encapsulates direct client-side calls to the Firebase Vertex AI SDK, specifically for Imagen 3 image generation.
+    *   **Methods:**
+        *   `generateImages(String prompt)`: Initializes the Imagen model and calls `model.generateImages()`. Returns the dynamic response from the SDK.
+        *   `getFirstImageBytes(String prompt)`: Helper to directly get `Uint8List` of the first generated image.
+    *   Used by `StarsScreen` and `ConstellationCustomizationScreen` for image generation.
+
+### 3.5 State Management (`lib/providers/`)
+
+The application uses the `provider` package for managing application-wide state and injecting dependencies.
+
+* **`theme_provider.dart` (`ThemeProvider`):** Manages the application's current visual theme (`ThemeData`) and persists the user's theme choice to `SharedPreferences` using a user-specific key.
+* **`nickname_provider.dart` (`NicknameProvider`):** Manages the user's display nickname, persisting it to `SharedPreferences` (user-specific key) and coordinating with Firestore for the canonical nickname.
+* **`index_provider.dart` (`IndexProvider`):** Manages the integer `selectedIndex` used for navigating haikus in `StarsScreen` and `PublishTab`.
+* **`signout_provider.dart` (`SignOutProvider`):** Handles the asynchronous sign-out process, tracking loading state and error messages.
+* **`auth_email_provider.dart` (`AuthEmailProvider`):** Provides reactive access to the currently authenticated user's email address.
+* **`current_image_provider.dart` (`CurrentImageProvider`):** Tracks the last viewed image URL and its saved/unsaved status for each haiku (persisted to `SharedPreferences` with user-specific keys), primarily for `StarsScreen` UI.
+* **`audio_player_provider.dart` (`AudioPlayerProvider`):** Manages a shared instance of `AudioPlayer` (`just_audio`) for global audio playback control. It now supports direct, efficient streaming from secure signed URLs, a critical refactor that improves performance, reduces memory usage, and ensures cross-platform compatibility for both mobile and web. It exposes player state (isPlaying, isLoading, duration, position) for UI updates.
+
+### 3.6 Backend Logic (`functions/index.js` - Google Cloud Functions)
+
+The server-side logic is implemented as a suite of Google Cloud Functions (deployed via Firebase Functions), providing a scalable and secure backend. All HTTP-triggered functions enforce Firebase Authentication by verifying the ID token in the `Authorization` header.
+
+*   **Content Generation & AI Interaction:**
+    *   `haikuBotCloud` (HTTP): Securely generates haikus using Vertex AI Gemini.
+    *   `generateConstellationFable` (HTTP): Generates thematic fables for constellations using Vertex AI Gemini.
+    *   `getTravelAdvice` (HTTP): Provides AI-generated travel advice for constellations in the `ExploreTab`.
+    *   `generateHaikuAudio` (HTTP, v2): Synthesizes speech from haiku text using Google Cloud Text-to-Speech, uploads the MP3 to Storage, and updates Firestore with a secure, long-lived signed URL and associated metadata.
+    *   `suggestConstellationNames` (HTTP): Generates creative name suggestions for new constellations using Gemini.
+    *   `generateStarNames` (HTTP, v2): Generates unique star name suggestions based on haiku text.
+
+*   **Haikuverse Publishing, Discovery & Lifecycle:**
+    *   `generateConstellationRecommendations` (HTTP, v2): Recommends existing constellations for publishing by embedding haiku text and querying the "published stars" Vector Search index.
+    *   `getThemeBasedConstellationRecommendations` (HTTP, v2): Recommends constellations for discovery by embedding a user's theme prompt and querying the "fables" Vector Search index.
+    *   `publishStar` (HTTP, v2): Publishes a haiku to a constellation. Atomically updates Firestore documents, embeds the haiku text, and upserts the result into the "published stars" Vector Search index. Also awards achievements.
+    *   `deletePublishedStar` (HTTP, v2): Removes a published haiku. Atomically updates Firestore (decrementing counts, handling ownership transfer, deleting empty constellations), removes the corresponding datapoint from the Vector Search index, and performs a final, fault-tolerant sync to clear the `constellationId` from the user's private favorite document, ensuring data consistency across the application.
+
+*   **Knowledge Graph & Customization Persistence**
+    *   `saveConstellationCustomizations` (HTTP, v2): A synchronous, RPC-style endpoint that saves a constellation's fable/image to Firestore, deletes old assets from Storage, upserts the new fable embedding to the "fables" Vector Search index, queries for semantic neighbors, and updates the constellation's `semanticNeighborIds` list, returning the final neighbor list directly to the client.
+
+*   **User Profile & Content Sanitization:**
+    *   `sanitizeProfileImage` (HTTP, v2): Moderates uploaded profile images using Gemini safety checks. If safe, moves the image from temporary to permanent Storage (deleting the previous one) and returns the public URL.
+    *   `sanitizeNickname` (HTTP, v2): Validates user nicknames for allowed characters, uniqueness against Firestore, and content safety using Gemini.
+
+*   **Community & Social Interaction:**
+    *   `followUser` / `unfollowUser` (HTTP, v2): Atomically updates following/follower lists and public follower counts. Manages notifications.
+    *   `getFollowedConstellations` (HTTP, v2): Fetches all public or discoverable constellations owned by poets the current user follows.
+    *   `getFollowersDetails` (HTTP, v2): Fetches a detailed, enriched list of a user's followers, including their public profile data and whether the requesting user is following them back.
+    *   `submitStarComment` (HTTP, v2): Performs a Gemini harm check. If safe, creates a `pending_approval` comment and a notification. If harmful, creates a rejected comment and a moderation ticket.
+    *   `editStarComment` (HTTP, v2): Allows a user to edit their pending comment, re-running the harm check and updating the comment and notification.
+    *   `deleteStarComment` (HTTP, v2): Allows a comment's author or the star's owner to delete a comment and its associated notification.
+    *   `moderateStarComment` (HTTP, v2): Allows a star owner to approve or reject a pending comment.
+    *   `reportAbuse` (HTTP, v2): Allows a star owner to report a comment, which blocks the commenter, deletes the comment, and creates a moderation ticket.
+
+*   **Real-time Data Aggregation & Synchronization (Firestore Triggers):**
+    * `updateLikeCount` (Firestore Trigger, v2): Aggregates likes from the `user_likes` subcollection and updates the `likeCount` on both the public `/published_stars` and private `/favorites` documents. Awards `star_likes` achievements.
+    * `syncFavoriteMediaToPublishedStar` (Firestore Trigger, v2): When media fields (images, audio) are updated on a private favorite, this function syncs those changes to the corresponding public `/published_stars` document if it exists.
+    * `syncProfileImageOnUpdate` (Firestore Trigger, v2): Triggers when a user's `/public_profiles/{userId}` document is updated. It specifically checks if the `pictureUrl` has changed. If it has, the function performs a batch update to fan out the new URL to all `constellation` documents where that user is listed as the `creatorUid` or `ownerUid`, ensuring denormalized profile images remain consistent and preventing broken image links.
+    * `syncNicknameOnUpdate` (Firestore Trigger, v2): Triggers when a user's `/public_profiles/{userId}` document is updated. It specifically checks if the `nickname` field has changed. If it has, the function performs a batch update to fan out the new nickname to all `published_stars` where that user is the publisher (updating `authorNickname`) and all `constellation` documents where the user is the `creatorUid` or `ownerUid` (updating `creatorNickname` and `ownerNickname`). This ensures denormalized author names remain consistent throughout the application.
+
+*   **Zeitgeist & Knowledge Graph Maintenance:**
+    *   `_zeitgeistEngineLogic` (Internal Logic): A shared function implementing the "Hot + Persistent" algorithm to analyze activity and determine the top 5 trending community themes.
+    *   `zeitgeistEngineScheduled` (Scheduler Trigger, v2): Runs the `_zeitgeistEngineLogic` on a daily schedule.
+    *   `zeitgeistEngineHttp` (HTTP, v2): An authenticated endpoint for manual, on-demand execution of the `_zeitgeistEngineLogic`.
+    *   `knowledgeGraphHealer` (Scheduler Trigger, v2): A weekly self-healing job that finds "orphaned" constellations (zero neighbors) and uses Vector Search to find and assign new semantic neighbors.
+    *   `cleanupFableIndex` / `cleanupStarIndex` (HTTP, v2): On-demand, admin-triggered scripts to remove any "orphan" entries from the Vector Search indices that no longer correspond to a valid Firestore document.
+
+---
+## 4. Data Flow & Security
+
+This section details the journey of data through the application and the multi-layered security architecture that protects it.
+
+### 4.1 Data Flow Examples
+
+This section outlines the journey of data and user interactions through the Haikuverse application, providing a clear understanding of how user actions trigger specific, often asynchronous, data flows and processes across the client, backend functions, and database services.
+
+*   **App Startup and User Initialization (`main.dart`):**
+    *   The application launch triggers the `main()` function... The root `MyApp` widget uses a `FutureBuilder` to run the `_getInitialRoute` logic once. This check validates the user's session, verifying both their Firebase Auth state and EULA status before directing them to the correct screen. A separate `authStateChanges` listener handles background data synchronization, such as subscribing to or unsubscribing from Firestore data streams when the user's login state changes during an active session. If no user is authenticated, the local `_favorites` list is cleared.
+
+*   **Authentication Flow (User Onboarding & Login - `AuthScreen`, `VerificationScreen`, `EulaAcceptanceScreen`):**
+    *   This flow is now orchestrated primarily within `AuthScreen` to handle the multi-step user onboarding process.
+    *   **For new email/password sign-ups:** `AuthScreen` calls `AuthService` to create the user, `FirestoreService` to create their initial data documents, and `EmailVerificationService` to send a verification link. The user is then directed to the `VerificationScreen`. Here, a timer periodically checks their verification status. Once verified, they are navigated to the `EulaAcceptanceScreen`.
+    *   **For existing user login (or Google Sign-In):** After successful authentication, the `_checkEulaAndNavigateAfterLogin` helper method in `AuthScreen` queries Firestore to determine the user's status and routes them to the correct screen: `/verify-email` if they haven't verified, `/eula-acceptance` if they haven't accepted the EULA, or directly to `/home` if they are fully onboarded.
+
+*   **Haiku Generation Flow (User-Driven Content Creation - `HomeScreen`, `Cloud Function`):**
+    *   The user enters a prompt in `HomeScreen`. "Generate Haiku" triggers `_generateContent`, which constructs a full prompt, retrieves a Firebase ID token, and sends an authenticated HTTPS request to the `haikuBotCloud` Cloud Function. The backend validates the token, calls the Vertex AI Gemini API, and returns the haiku text. `HomeScreen` receives this response, enabling the Star Naming Toolkit. After a name is selected and the haiku is favorited, the naming UI is replaced by the `StarProgressTracker`, providing a clear checklist for the subsequent creative steps.
+
+*   **Favoriting/Unfavoriting Workflow (User Action -> `main.dart` -> Firestore -> Stream Update):**
+    *   Tapping the `FavoriteButton` invokes `_toggleFavorite(haiku)` in `_MyAppState`. This method calls the appropriate `FirestoreService` method (`addFavorite` or `removeFavorite`). For removals, it also triggers the `deletePublishedStar` Cloud Function and initiates the deletion of associated images and audio files from Storage. Critically, `_toggleFavorite` does *not* manually alter the local `_favorites` list. The UI updates reactively via the Firestore stream established by `_subscribeToFavorites`.
+
+*   **Image Generation & Association Workflow (User Action -> `StarsScreen` -> Vertex AI SDK -> Storage -> `main.dart` -> Firestore -> Stream Update):**
+    * In `StarsScreen`, "Generate Image" calls `VertexAIService` (client-side Imagen 3 SDK). `StorageService` uploads the resulting image bytes to Storage. The returned URL is tracked by `CurrentImageProvider` as unsaved. On save, `_associateImageUrlToHaiku` in `_MyAppState` calls `FirestoreService.updateFavorite` to persist the new URL to the `Haiku` document in Firestore and notifies `CurrentImageProvider` to mark the image as saved. Additionally, users can launch the `ReorderImagesScreen` to visually drag and drop their three saved images into a new order, which is then persisted back to the `Haiku` document in Firestore via the `_saveReorderedImages` callback in `_MyAppState`.
+
+*   **Text-to-Speech Audio Generation (`FavoritesScreen`, `_MyAppState`, `FirestoreService`):**
+    * From the `AudioToolkitModal`, the `onGenerateAudioRequested` callback invokes `_triggerAudioGeneration` in `_MyAppState`. This method calls `firestoreService.triggerGenerateHaikuAudio`, abstracting the direct network call. The service sends an authenticated request to the `generateHaikuAudio` Cloud Function. The backend calls Google Cloud Text-to-Speech, uploads the MP3 to Storage, generates a secure signed URL, and atomically updates Firestore. The signed URL is returned all the way back to the client for direct, efficient streaming playback.
+
+*   **User Profile & Customization Update (`SettingsTab`, `CustomizationTab`, `Cloud Functions`):**
+    *   In `SettingsTab`, "Save Changes" triggers `_saveUserProfile`, which calls the `sanitizeNickname` Cloud Function for server-side validation. If safe, it updates the user's profile and favorites in Firestore. Image updates trigger the `sanitizeProfileImage` Cloud Function. In `CustomizationTab`, selecting a frame or flair directly calls `FirestoreService.updateUserCustomizations`, which updates the `selectedFrameId` or `selectedFlair` fields in the user's `public_profile` document.
+
+*   **Haiku Publishing Workflow (`PublishTab` -> `FirestoreService` -> Cloud Functions -> Vector Search / Firestore):**
+    *   The user selects a haiku in `PublishTab`. The tab fetches recommendations via the `generateConstellationRecommendations` Cloud Function, which queries the "published stars" Vector Search index. Confirming publication triggers the `publishStar` Cloud Function, which atomically updates Firestore, embeds the haiku, and upserts it to the Vector Search index.
+
+*   **Haiku Card Sharing Workflow (User Action -> Firestore -> Client-Side Generation -> OS Share Sheet):**
+    *   The user navigates to the `SharingTab`. A `StreamBuilder` subscribes to a real-time stream via `FirestoreService`, fetching all of the user's published stars and displaying them in a grid.
+    *   When a user taps a star, the `screenshot` package captures a dedicated, beautifully formatted card widget as an image in memory. This capture happens immediately, before a dialog is displayed to the user for a final preview and confirmation.
+    *   Upon confirmation, the `share_plus` package is invoked. It handles the platform-specific logic: on mobile, the image bytes are written to a temporary file before sharing, while on the web, the bytes are shared directly from memory. This opens the native **OS share sheet**, allowing the user to seamlessly share their creation outside the Haikuverse.
+
+*   **Community & Social Interaction Flow (User Action -> Client Services -> Cloud Functions -> Firestore & Real-time Stream Updates):**
+    *   The application's social features are orchestrated through a series of interconnected, backend-driven workflows.
+        *   **Following a Poet:** A user taps "Follow" in the `StarDetailPopup`. This calls `FirestoreService`, which invokes the `followUser` Cloud Function. The backend atomically updates the `following` and `followers` subcollections for both users, increments the target's public `followerCount`, and creates a `new_follower` notification.
+        *   **Liking a Star:** Liking a star calls `FirestoreService.likeStar`, which creates a document in the `/user_likes` subcollection. This write triggers the `updateLikeCount` Firestore trigger, which aggregates likes and updates the `likeCount` on both the public `PublishedStar` and private `Haiku` documents.
+        *   **Achievement Unlocking:** Achievements are awarded by backend triggers. For example, when `updateLikeCount` increments a star's `likeCount` to a milestone, it idempotently calls `awardAchievement`, which updates the creator's `public_profile` and creates an `achievement_unlocked` notification.
+        *   **Comment Moderation:** Submitting a comment triggers the `submitStarComment` function, which runs a Gemini harm check. If safe, it creates a `pending_approval` comment and a `new_comment` notification. The star owner, viewing this in their `NotificationsScreen`, can then approve or reject (triggering `moderateStarComment`), or report the comment for abuse.
+
+### 4.2 Secure Access Control with Firebase Services
+
+The Haikuverse application employs a comprehensive security architecture built upon Firebase Authentication, Cloud Firestore Security Rules, and Firebase Storage Security Rules.
+
+*   **Core Security Mechanism: Firebase ID Token Verification:**
+    *   All HTTP-triggered Cloud Functions use the Firebase Admin SDK to validate the client-sent Firebase ID token in the `Authorization` header. If verification fails, the function immediately returns a `401 Unauthorized` response, preventing any further execution.
+
+    *   **Application Attestation with Firebase App Check:** As an additional security layer, the application integrates Firebase App Check. On Android, it uses the **Play Integrity API**, and on the web, it uses **reCAPTCHA Enterprise** to attest that backend requests originate from a genuine and untampered instance of your application. This helps protect backend resources from abuse, such as billing fraud or phishing, by blocking traffic that doesn't have valid credentials, complementing the user-level security of Firebase ID tokens.
+
+*   **Defense in Depth (Granular Security Rules & Limited Blast Radius):**
+    *   **Cloud Firestore Security Rules:**
+        *   Private user data (`/users/{uid}` and its subcollections like `/favorites`, `/following`, `/followers`): Read/write access is strictly limited to the authenticated owner.
+        *   Public user data (`/public_profiles/{uid}`): Publicly readable, but writable only by the owning user or trusted backend functions (for fields like `followerCount` and `achievements`).
+        *   `/constellations`: Modification of core creative content (`fableText`, `fableImageUrl`) is restricted to the `ownerUid`. Public read access is granted for discoverable constellations.
+        *   `/published_stars`: Write and delete operations are managed by secure Cloud Functions that verify ownership. Public read is allowed.
+        *   Like subcollections (`/user_likes/{userId}`): Users can only write/delete their own like document.
+        *   Comment Moderation: Rules ensure users can only read `approved` comments. Writing is handled by the `submitStarComment` function, editing is restricted to the author while `pending_approval`, and deleting is restricted to the author or the star's owner.
+        *   `/feedback/{userId}`: A user can only access their own feedback document and its subcollections.
+
+*   **Firebase Storage Security & Access Model:**
+    *   The Storage bucket is configured for **Uniform Bucket-Level Access**, disabling legacy, per-object Access Control Lists (ACLs) in favor of a modern, IAM-based security model. This is a critical prerequisite for supporting modern web security standards.
+    * Haikuverse employs two distinct, parallel security models for its Storage assets, tailored to the specific operation's context and trust requirements:
+        * **Client-Side Access (Token-Based Download URLs):** This model is used for assets like user-generated haiku images and profile pictures. The client uploads the file directly via the Firebase SDK, receives a standard Firebase download URL containing a long-lived, unguessable security token, and access is governed by Storage Security Rules. This is a user-centric model for operations initiated and completed on the client.
+        * **Server-Side Access (Signed URLs):** This model is used for assets that are generated on the backend, such as the audio files created by the `generateHaikuAudio` Cloud Function. The function, running as a trusted service account, generates a long-lived Signed URL with a cryptographic signature and expiration date. The validity of this URL depends on the Google Cloud IAM permissions granted to the function's service account. This is a more robust model for assets created within a secure, server-side environment.
+    *   **CORS Configuration:** A `cors.json` configuration is applied to the bucket, allowing `GET` requests from the application's web origins (`haiku-bot-advanced.web.app` and `localhost`). This is essential for the browser to load Storage assets (like images and audio) without being blocked by Cross-Origin policies enforced by the COEP/CORP headers required for Google Sign-In on the web.
+    *   **Web Security Policy (COEP/CORP):** The web app's security model is intentionally designed to support modern features like Google's GSI library by serving a `Cross-Origin-Embedder-Policy` (COEP) header. A deliberate architectural decision was made to set this policy to `credentialless` to proactively manage the known interaction between this security requirement and Firebase Storage's default behavior (which lacks a `CORP` header). This configuration is optimal for Haikuverse, as it securely instructs browsers to request the app's public audio and image assets without credentials, aligning perfectly with the application's public media model.
+    *   **Access via Token-Secured URLs:** Publicly visible assets like profile pictures, generated images, and audio files are secured via unguessable download tokens embedded in their URLs. The security rules for these assets are set to allow read: if true;, but this does not make the content browsable or discoverable. Access is granted only to a client that possesses the complete URL with its valid, unique token. These URLs are generated securely by the Firebase SDK or backend Cloud Functions and delivered only to authenticated client sessions, ensuring that while the browser can render the content, the assets themselves remain secure and non-enumerable.
+    *   **Security Rules:** While access is primarily managed by secure download tokens and server-generated Signed URLs, Storage Security Rules provide a final layer of defense-in-depth, restricting direct write/delete access to authenticated owners for their respective paths (e.g., `/profile_images/{uid}/`, `/haiku_audio/{uid}/`).
+
+*   **Vertex AI and GCP API Security (Service Account & OAuth):**
+    *   Backend Cloud Functions use a Google Cloud service account and the `google-auth-library` to obtain short-lived OAuth 2.0 access tokens for secure, server-to-server communication with GCP APIs like Vertex AI and Text-to-Speech. No API keys are exposed.
+    *   Client-side calls to the Firebase Vertex AI SDK (e.g., `VertexAIService` for Imagen) rely on the authenticated Firebase user context for secure access.
+
+*   **Clarification on Cloud Function Invocation:**
+    *   The Cloud Run setting "Allow unauthenticated invocations" is necessary for client-triggered HTTPS functions to work correctly with Firebase's ID token-based authentication. Security is not bypassed, as every function rigorously verifies the Firebase ID token internally before processing any request.
+
+---
+## 5. Community & Social Features
+
+The application has been extended beyond a personal creative tool to include a rich set of community and social features, collectively known as the "Haikuverse." This system is built on a secure and scalable serverless backend, enabling users to interact, follow creators, and earn recognition for their contributions.
+
+*   **Feature Overview:**
+    *   **Follow System:** Users can follow their favorite poets. The UI dynamically shows follow/unfollow status and follower counts.
+    *   **Automated Achievements:** The system automatically recognizes user contributions and awards achievements for milestones like publishing stars, creating constellations, or receiving likes.
+    *   **Avatar Customization:** Users can personalize their public profile with animated frames and "flair" (icons) that represent their unlocked achievements.
+    *   **Unified Notifications:** A centralized notification screen alerts users to all community interactions, including new comments on their stars, new followers, and achievements they've unlocked.
+    *   **Community Moderation:** Star owners can moderate comments on their creations (approve/reject) or report them for abuse, which automatically blocks the user and creates a moderation ticket.
+
+*   **Technical Architecture & Key Concepts:**
+    *   **Backend-Orchestrated Logic:** Critical actions like following a user or awarding an achievement are handled by dedicated **HTTP-triggered Cloud Functions**. This ensures data integrity, security, and atomicity, as multiple database operations are executed in a single, reliable transaction on the server.
+    *   **Event-Driven Architecture & Idempotency:** Achievements are awarded using an event-driven model. **Firestore Triggers** (`onDocumentWritten`) monitor events like star publications and like counts. When a milestone is reached, these backend triggers automatically execute the **idempotent** helper function `awardAchievement`.
+    *   **Denormalization for Performance:** To ensure a fast and responsive user experience, key data points are denormalized:
+        *   **Follower Count:** A `followerCount` is stored directly on a user's `public_profile` document and updated by Cloud Functions. 
+        *   **Data Synchronization:** Public-facing data (like `likeCount` on a published star) is automatically synced back to the user's private `favorites` document via Firestore triggers.
+        *   **Denormalized Notifications:** Notification documents store copies of relevant data (like nicknames) to avoid extra database lookups. Similarly, triggers like `syncNicknameOnUpdate` and `syncProfileImageOnUpdate` ensure that changes to a user's public profile are automatically fanned out to all of their published works and created constellations.
+    *   **Secure Data Modeling:** A clear separation between private (`/users`) and public (`/public_profiles`) data is enforced. Firestore Security Rules prevent users from tampering with their own follower counts or achievements and ensure users can only manage their own "following" list.
+
+---
+## 6. Setup and Configuration
+
+This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for its backend logic and Firebase Authentication for secure API access. Key backend functionalities include AI-powered content generation (haikus, fables, images), image/nickname sanitization, Text-to-Speech synthesis, semantic constellation recommendations, Haikuverse publishing, and knowledge graph management, all interacting with Firebase services, Vertex AI (Embedding API, Gemini, Imagen), and Vertex AI Vector Search. API keys for backend services are securely managed server-side. Client-side Imagen calls via the Vertex AI SDK rely on Firebase project configuration and user authentication.
+
+**Prerequisites:**
+
+* **Flutter SDK:** Latest stable version recommended. ([Installation Guide](https://flutter.dev/docs/get-started/install))
+* **Firebase Project:** An active Firebase project is required. ([Firebase Console](https://console.firebase.google.com/))
+* **Google Cloud Project:** A Google Cloud project linked to your Firebase project.
+* **Firebase CLI:** Firebase Command Line Interface (`firebase-tools`) installed and configured. ([Installation Guide](https://firebase.google.com/docs/cli))
+* **FlutterFire CLI:** Required for Firebase configuration in your Flutter project. ([Installation Guide](https://firebase.flutter.dev/docs/cli/))
+* **Node.js and npm:** Required for Firebase Functions. **Node.js version 22 is specified in `functions/package.json`.** Using Node Version Manager (`nvm`) is highly recommended.
+    * **Windows:** Install `nvm-windows` ([GitHub](https://github.com/coreybutler/nvm-windows/releases)).
+    * **macOS/Linux:** Install `nvm` ([GitHub](https://github.com/nvm-sh/nvm)).
+    * After installing `nvm`, run: `nvm install 22` and `nvm use 22`.
+* **Enabled Firebase Services:**
+    * Firebase Authentication (with Email/Password and Google sign-in methods enabled).
+    * Cloud Firestore (ensure you've created a database, typically in Native mode).
+    * Firebase Storage.
+    * Firebase App Check (with Play Integrity for Android and reCAPTCHA Enterprise for Web).
+* **Enabled Google Cloud APIs:** In your Google Cloud project, ensure the following APIs are enabled:
+    * Vertex AI API (for Gemini, Imagen, Embedding API, Vector Search, and content safety checks).
+    * Google Cloud Text-to-Speech API.
+    * Cloud Build API (usually enabled automatically for Functions deployment).
+    * Identity Toolkit API (usually enabled automatically for Firebase Auth).
+    * Cloud Functions API.
+    * Cloud Scheduler API (for `zeitgeistEngineScheduled`).
+
+* **Vertex AI Vector Search Indices & Endpoints:** Two primary deployed Vertex AI Vector Search Indices and their corresponding public Index Endpoints must be configured in your Google Cloud Project:
+    1.  **Published Stars/Haikus Index:** Used for recommending constellations during haiku publishing.
+    2.  **Constellation Fables Index:** Used for building the semantic knowledge graph and theme-based discovery in the Explore Tab.
+    * For *each* index, note its `Index ID`, the `Deployed Index ID` on its endpoint, and the `Public Endpoint Domain Name` (for querying via `MatchServiceClient`). These will be needed in `functions/index.js`.
+
+**Deployment and Configuration Steps:**
+
+**a. Flutter Project Setup:**
+
+* **Clone Repository (if applicable).**
+* **Navigate to Project Root** in your terminal.
+* **Install Flutter Dependencies:** Run `flutter pub get`.
+* **Configure Firebase with FlutterFire:** Run `flutterfire configure` and follow the prompts to link your Firebase project. This generates `lib/firebase_options.dart`.
+
+**b. Firebase Functions Setup and Deployment:**
+
+* **Navigate to `functions` Directory:** From the project root, `cd functions`.
+* **Install Node.js Dependencies:** Run `npm install`. This will install packages like `firebase-functions`, `firebase-admin`, `axios`, `@google-cloud/aiplatform`, `@google-cloud/text-to-speech`, `@google-cloud/storage`, `google-auth-library`, and `uuid` as defined in `package.json`.
+* **Configure `functions/index.js`:**
+    * **Project IDs:** Verify that the `project` variable (used for Vertex AI client initialization) and any `projectNumber` constants (used for constructing full resource names for Vector Search) are set to your correct Google Cloud project ID and number.
+    * **Vector Search Constants:** Update the placeholder constants for your **Published Stars Index** and **Constellation Fables Index** with the actual `Index ID`, `Index Endpoint ID`, `Deployed Index ID`, and `Public Endpoint Domain Name` you noted from your GCP setup. Example placeholders to look for and replace:
+        * `HAIKU_STAR_INDEX_ID`, `HAIKU_STAR_ENDPOINT_ID`, `DEPLOYED_HAIKU_STAR_INDEX_ID`, `HAIKU_STAR_MATCH_SERVICE_DOMAIN` (for the published stars/haikus index).
+        * `FABLE_INDEX_ID_FOR_CLEANUP`, `FABLE_INDEX_ID_FOR_UPSERT`, `FABLE_INDEX_ENDPOINT_ID_FOR_QUERY`, `FABLE_DEPLOYED_ID_FOR_QUERY`, `FABLE_MATCH_SERVICE_DOMAIN` (for the fables index).
+* **Deploy Functions:** Navigate back to the project root (`cd ..`) and deploy:
+```bash
+   firebase deploy --only functions
+```
+* **Critical: Adjust Cloud Function Memory & Timeout:**
+    * After deployment, go to the **Google Cloud Console -> Cloud Functions**.
+    * For functions interacting heavily with AI services (e.g., `generateConstellationRecommendations`, `publishStar`, `generateStarNames`, `generateHaikuAudio`, `generateConstellationFable`, `saveConstellationCustomizations`, `zeitgeistEngineScheduled`, `zeitgeistEngineHttp`, `getThemeBasedConstellationRecommendations`, `getTravelAdvice`), verify and adjust their **allocated memory** and **timeout** settings.
+    * Most of these functions are defined in `index.js` using the Firebase Functions v2 SDK (e.g., `onRequest({ memory: "512MiB", ... })`). Ensure these settings are appropriate. For functions defined with v1 SDK or if you need to adjust post-deployment:
+        * Select the function, click "Edit".
+        * Under "Runtime, build, connections and security settings" (or similar):
+            * **Memory allocated:** Set to at least `512MB`. Some, like those handling multiple AI calls or large data, might need `1GB` or `2GB`. Monitor logs for out-of-memory errors.
+            * **Timeout:** Default is 60 seconds. Increase if functions perform long-running operations (e.g., multiple sequential AI calls, large batch writes). Start with 120s or 180s and adjust based on execution logs.
+    * Save changes for each function. This is crucial for preventing out-of-memory errors and premature timeouts.
+
+**c. Flutter Application Configuration (Verification):**
+
+* **Cloud Function URLs:** The URLs for all HTTP-triggered backend Cloud Functions are managed centrally in `lib/constants/app_constants.dart`. This configuration service approach eliminates hardcoded strings within the service layer (`FirestoreService.dart`, `GeminiService.dart`), making the application more maintainable and easier to configure for different environments. When deploying, verify that the `_cloudFunctionsBaseUrl` in this file matches the project's URL.
+    * `haikuBotCloud` (in `HomeScreen` or its service for haiku generation).
+    * `sanitizeProfileImage`, `sanitizeNickname` (in `PreferencesScreen` or its service).
+    * `generateConstellationRecommendations`, `publishStar`, `deletePublishedStar`, `saveConstellationCustomizations`, `getThemeBasedConstellationRecommendations`, `getFollowedConstellations` (typically in FirestoreService).
+    * `generateHaikuAudio` ( in `FirestoreService`).
+    * `generateStarNames`, `generateConstellationFable`, `getTravelAdvice` (in GeminiService).
+* **Asset Verification:** Ensure all prompt templates (`.txt` files in `assets/`) and the `assets/default_profile.png` are correctly declared in `pubspec.yaml`.
+* **Google Sign-In Configuration:** The application uses a hybrid, platform-aware approach for Google Sign-In. For mobile (Android), it uses the standard `google_sign_in` plugin, which is initialized in `main.dart` with the `serverClientId`. For the web, it uses a direct implementation of the Google Identity Services (GSI) library to render the official, browser-native Google button. This is achieved through a set of conditional-export "barrel" files (`gsi_connector.dart`, `google_sign_in_button_connector.dart`) that isolate web-specific code (`package:web`, `dart:js_interop`) from the mobile build path, ensuring cross-platform compatibility without compromises.
+
+**d. Firestore Security Rules & Indexes:**
+
+* **Security Rules:** Deploy appropriate Cloud Firestore security rules to protect user data (e.g., users can only R/W their own profiles and favorites) and manage access to public collections like `/published_stars` and `/constellations`. Ensure rules align with how Cloud Functions (using Admin SDK) and clients access data.
+* **Composite Indexes:** For complex queries (e.g., in `deletePublishedStar` for finding owner's last star, or in `getKnownDiscoverableConstellations`), Firestore might require composite indexes. If you encounter "Failed Precondition" errors in your Function logs related to queries needing an index, Firestore usually provides a direct link in the error message to create the required index in the Firebase console.
+
+**e. Run the Flutter Application:**
+
+* Ensure a connected device or running emulator/simulator.
+* Run the app: `flutter run`.
+
+After completing these steps, your Haikuverse application, with its full suite of AI, data persistence, and community features, should be fully configured and operational.
+
+---
+## 7. Beyond the Code: Architectural Principles and Design Philosophy
+
+The design and development of Haikuvese application are guided by core architectural principles aimed at creating a high-quality, scalable, and maintainable generative AI application. The choices made reflect a deliberate effort to thoughtfully weave together advanced AI capabilities, secure cloud infrastructure, and intuitive design. Every technical component is built in service of the application's guiding vision: an experience **Designed for Humans**. The following sections detail these foundational principles, illustrating how specific engineering strategies in system architecture, data management, security, user interaction, and quality assurance contribute to a resilient, efficient, and sophisticated yet accessible creative tool.
+
+### Scalable Client-Server Architecture with Managed Serverless Backend
+Haikuverese App is foundationally architected upon a **serverless-first** client-server model, ensuring robust security, operational efficiency, and inherent scalability. The cross-platform Flutter client delivers a rich user experience, handling UI rendering, local logic, and sophisticated client-side prompt engineering. Computationally intensive and security-critical operations are delegated to a secure backend using Google Cloud Functions. This serverless approach eliminates infrastructure management and is complemented by an **event-driven** model where appropriate. For instance, the `updateLikeCount` and `syncFavoriteMediaToPublishedStar` functions are not called directly by the client but are Firestore triggers that react to database events. This decouples complex background tasks from the user-facing request cycle, creating a resilient system where data aggregation and synchronization happen automatically and reliably.
+
+A core tenet of this architecture is the use of a **synchronous Remote Procedure Call (RPC)-style pattern** for critical, user-initiated actions that require a sequential, multi-step backend process. When a user saves constellation customizations (`ConstellationCustomizationScreen`), the client doesn't fire off an asynchronous event and hope for the best. Instead, it makes a single, direct HTTPS call to the unified `saveConstellationCustomizations` Cloud Function and waits for the complete response. This backend function is designed to be synchronous from the client's perspective: it saves the data, immediately triggers the Vector Search, waits for the search to complete, saves the results, and only then returns the final, correct list of neighbors in its HTTP response. This RPC approach completely eliminates client-side race conditions, simplifies UI state management by removing the need for complex stream listeners for this action, and guarantees that the user receives immediate, accurate feedback (via the `SnackBar`) upon the successful completion of the entire backend workflow.
+
+### Strategic NoSQL Data Modeling for Firestore Optimization
+The application’s data persistence strategy aligns with Cloud Firestore's NoSQL nature, prioritizing query performance, data integrity, and scalability. Dart data models (`Haiku`, `UserProfile`, `PublishedStar`, `Constellation`) serve as type-safe contracts and are designed for Firestore's flexible schema and common access patterns. **Strategic denormalization** is key: relevant data (e.g., `authorNickname` in `Haiku` and `PublishedStar` documents; `starCount` on `Constellation` documents) is duplicated to minimize client-side joins and multiple reads, enhancing UI rendering performance. While requiring management of data consistency (e.g., the client batch-updates `authorNickname` across private `favorites`, while the `syncNicknameOnUpdate` Cloud Function trigger handles propagating the change to all public `published_stars` and `constellations`), the performance gains for read-heavy scenarios are significant. Robust serialization/deserialization logic (`toJson`, `fromJson`), including proper handling of Firestore `Timestamp`, ensures seamless data transfer. **Firestore indexing**, including manually defined composite indexes, is also critical for optimizing complex queries (e.g., finding constellations by multiple attributes and sorting), ensuring the application remains responsive as the Haikuverse grows by preventing slow, costly database scans.
+
+### Hybrid State Management: Balancing Real-Time Sync, Local Caching, and UI Responsiveness
+Haikuvese App employs a pragmatic, multi-faceted hybrid state management strategy to optimize for distinct data characteristics and user experience needs. This combines **Cloud Firestore's real-time streams** for dynamic, multi-device data synchronization (e.g., favorite haikus via `_MyAppState` and `FirestoreService.getFavoritesStream`; owned constellations in `ManageTab`), **`SharedPreferences`** for efficient local caching of device-centric user preferences (theme via `ThemeProvider`, nickname via `NicknameProvider`) and UI-specific tracking state (`CurrentImageProvider` for image status on `StarsScreen`), and Flutter's **`provider` package** for orchestrating global state accessibility and dependency injection. Local `StatefulWidget` state (via `setState`) manages transient, UI-centric logic within individual components. This is exemplified in the `AudioToolkitModal`, which manages its own state for voice and rate selections to provide immediate UI feedback (e.g., updating a "Play" button to "Generate"), resolving potential race conditions and ensuring the component is instantly responsive without waiting for backend confirmation. Use of `mounted` checks and careful use of `context.read`/`watch` prevent common pitfalls with asynchronous operations. To ensure freshness of externally fetched media and avoid stale cached versions (e.g., in `just_audio` or image display widgets), **cache-busting** (appending unique query parameters to URLs) is employed, guaranteeing users interact with the latest content without complex manual cache invalidation. This hybrid model leverages the strengths of each technique for a responsive, resilient, and maintainable application.
+
+### Client-Side Edge Prompt Engineering for Optimized Latency and Backend Efficiency
+A key architectural decision to enhance user-perceived performance and optimize backend resource use is the strategic implementation of **client-side, or "edge," prompt engineering**. Instead of sending raw user input or minimal contextual data to the backend, Haikuverse intelligently constructs complete, context-rich prompts directly within the Flutter client before any network request. For haiku generation in `HomeScreen`, this involves loading the base template (`assets/prompt.txt`), integrating user input, and incorporating text from current favorites (from `_MyAppState`'s synced list) to provide originality context for Vertex AI Gemini. Similarly, for Imagen 3 image generation in `StarsScreen`, the client assembles prompts using `assets/imagen_prompt.txt`, the original user prompt, and haiku text. For AI-generated fables and travel advice in `ConstellationCustomizationScreen` and `ExploreTab` respectively, templates like `assets/fable_prompt.txt` or `assets/travel_advice_*.txt` are combined with dynamic data such as constellation names, star context, or user themes on the client. This "edge processing" strategy dramatically reduces perceived latency by minimizing server-side data retrieval and assembly. The backend Cloud Function or AI service receives a ready-to-use prompt, allowing it to focus on core AI model interaction, shortening round-trip times for a more fluid user experience. This also optimizes backend resource use, improving scalability and potentially lowering operational costs, aligning with modern edge computing trends for AI applications.
+
+### Client-Side Procedural Generation: Crafting Interactive Vector Art Constellation Graphs
+Beyond leveraging generative AI for content, Haikuverese App employs **client-side procedural generation (PG)** to create stylized **vector art** representations of abstract constellation graphs within the `HaikuverseNavigationScreen`. This innovative approach, distinct from the generative AI features, provides fine-grained aesthetic control and high-performance interactive visuals without relying on external graph rendering libraries or incurring additional API call costs. The core of this system is an algorithm (`_calculateStarLayout` in `_HaikuverseNavigationScreenState`) that automatically generates the visual structure of each constellation. This algorithm defines rules for distributing stars into rings—incorporating radius, angle, and jitter parameters for an organic appearance—and establishes connectivity logic, including minimum/maximum edges per star and prioritized radial and tangential linking. Crucially, it implements a **heuristic-based algorithm**, a series of practical "rules of thumb" designed to achieve an aesthetically pleasing and performant result efficiently, rather than striving for a computationally expensive, mathematically perfect planar graph. Examples of these heuristics include initial ring placement, prioritizing connections for core and orphaned stars, and visual rules for edge crossing avoidance and angle separation (e.g., aiming to keep angles above 20 degrees). The `_calculateStarLayout` method functions like an **implicit state machine**, progressing through stages: initial star placement, radial connections, tangential connections (respecting existing structural edges), and iterative dumbbell/orphan fixing to ensure connectivity, with the graph's state evolving at each stage. The `ConstellationViewPainter` then uses Flutter's `CustomPaint` API to render this procedurally generated structure as **vector art**. Stars are drawn as circles (`canvas.drawCircle()`) and connections as lines (`canvas.drawLine()`), both defined by mathematical equations. Text labels are also rendered as part of this vector output. This vector-based approach ensures that the constellation graph can be scaled to any size during user interaction (zooming) without loss of quality or pixelation, a key advantage for creating fluid and responsive interactive visualizations, showcasing a deliberate fusion of algorithmic design with artistic presentation.
+
+### AI-Powered Semantic Discovery: Vertex AI Vector Search for Recommendations and Knowledge Graph
+To foster a rich, interconnected "Haikuverse," Haikuverse implements an innovative **AI-powered semantic discovery mechanism** using **Vertex AI Vector Search**. This system enables users to find and associate haikus with constellations based on deeper thematic similarities and builds a dynamic, fable-driven knowledge graph. When a user considers publishing a haiku from the `PublishTab`, the `FirestoreService` calls the `generateConstellationRecommendations` Cloud Function. This function embeds the haiku text (Vertex AI Embedding API, `RETRIEVAL_QUERY` type) and queries a Vector Search index of *published stars (haikus)* using the `MatchServiceClient`, returning semantically similar constellations enriched with Firestore metadata. For theme-based discovery in the `ExploreTab`, the `getThemeBasedConstellationRecommendations` Cloud Function embeds the user's "adventure theme" prompt and queries a separate "fables" Vector Search index to return discoverable constellations whose fables align semantically. The construction of this "fables" knowledge graph is handled by the synchronous `saveConstellationCustomizations` Cloud Function. When a constellation owner saves a discoverable fable, this function embeds the fable text (Vertex AI Embedding API, `RETRIEVAL_DOCUMENT` type), upserts it to the "fables" Vector Search index (`IndexServiceClient`), queries the same index for semantically similar fables (`MatchServiceClient`), and then atomically updates the source constellation's `semanticNeighborIds` in Firestore with a random selection of up to 5 of the top results. These IDs form the explicit edges of the Haikuverse knowledge graph. This sophisticated, multi-index integration of embedding generation and vector search provides powerful, intuitive ways for users to discover content and understand thematic relationships.
+
+### Resilient Systems: A Self-Pruning and Self-Healing Knowledge Graph
+The Haikuverse knowledge graph is designed not just to exist, but to endure. It employs a multi-faceted resilience strategy that combines client-side **"self-pruning"** with a suite of backend maintenance and **"self-healing"** functions. When a user navigates the graph, the application's validation logic actively prunes dead links by checking for the existence and permissions of neighbors before displaying them. If a user owns a constellation with dead links, the client can write the pruned list back to Firestore. This is complemented by two types of backend processes. First, a weekly, scheduled `knowledgeGraphHealer` function automatically finds any constellations that have become "orphaned" (having zero neighbors) and re-weaves them into the Haikuverse by finding new, semantically relevant connections. Second, a pair of on-demand, admin-triggered scripts (`cleanupFableIndex` and `cleanupStarIndex`) can be invoked at any time to perform a **full audit of the Vector Search indices**, identifying and removing any "ghost" entries that no longer correspond to a valid Firestore document. This symbiotic relationship—where the client performs immediate, localized pruning and the backend provides both routine healing and on-demand integrity checks—creates a robust, resilient system that actively maintains its own health over time.
+
+### Multi-Layered Security: Firebase Authentication, Google OAuth, and Granular Access Controls
+Haikuverse employs a defense-in-depth security strategy, integrating multiple layers of authentication and authorization to rigorously protect user data, secure backend services, and control access to Google Cloud Platform resources. The cornerstone of user-facing security is **Firebase Authentication**, which manages the user lifecycle and issues short-lived, cryptographically signed Firebase ID tokens. These ID tokens are mandatory for invoking all backend Google Cloud Functions; each function, upon receiving an HTTPS request, uses the **Firebase Admin SDK** (`admin.auth().verifyIdToken()`) to validate the token's authenticity, integrity, and expiration. If verification fails, the function immediately returns a `401 Unauthorized` response, preventing further execution. This is complemented by **Firebase App Check**, which provides a crucial layer of application attestation, verifying that requests originate from a genuine client using Play Integrity on Android and reCAPTCHA Enterprise on the web.
+
+For interactions with specific Google Cloud services from the backend, such as the Vertex AI Embedding API and Vertex AI Vector Search API (via `MatchServiceClient` and `IndexServiceClient`), a transition to service-centric **Google OAuth 2.0** access tokens occurs. Cloud Functions utilize the `google-auth-library` to obtain these OAuth tokens via their implicitly assigned, securely managed service account credentials, granting narrowly-scoped permissions for GCP API interaction without exposing long-lived keys.
+
+Complementing this, granular access controls are enforced at the data storage level. **Cloud Firestore Security Rules** ensure users can only read/write their own profile data (`/users/{uid}`) and private favorites (`/users/{uid}/favorites/{haikuId}`), while `ownerUid` on `/constellations` documents restricts modification of creative content. Rules for `/published_stars` and their `user_likes` subcollections are managed to allow public reads and user-specific like actions, with core write/delete operations handled by authenticated Cloud Functions. **Firebase Storage Security Rules** govern file access, restricting write/delete to owners for profile images, generated haiku images, and audio files, while allowing appropriate public read access for display or playback. Constellation fable images are publicly readable, with write/delete managed server-side by the secure `saveConstellationCustomizations` Cloud Function. This multi-layered approach establishes a robust security posture, adhering to the principle of least privilege.
+
+A core principle is ensuring **atomicity and data integrity by default**. The backend rigorously employs atomic operations for any action that modifies multiple documents. Whether a user is publishing a star, following another user, or submitting feedback, these operations are wrapped in **Cloud Firestore Transactions or Batch Writes**. This guarantees that all changes within a single logical action succeed or fail together, completely preventing the database from ever entering an inconsistent state.
+
+User privacy is also a foundational design constraint, implemented through **privacy-by-design via data segregation**. The architecture enforces a strict separation between private and public user data from the outset using two distinct top-level Firestore collections: `/users` and `/public_profiles`. The `/users` collection holds sensitive or private information and is governed by security rules that permit access only to the authenticated owner. The `/public_profiles` collection contains only the data a user explicitly agrees to share (nickname, avatar, achievements). This clear segregation provides users with transparent control over their information and simplifies the implementation of security rules, ensuring that private data is never accidentally exposed.
+
+### Resilient Asynchronous Operations and Comprehensive Error Handling
+To maintain a responsive UI and ensure application stability when dealing with operations of unpredictable duration—such as network requests, Firestore interactions (fetches and real-time streams), Storage uploads/deletions, and Vertex AI calls — Haikuverse consistently employs Dart's `async`/`await` pattern. This prevents UI freezes by keeping long-running tasks off the main execution thread. Beyond this, a multi-faceted error handling and state management strategy is implemented. **Proactive client-side input validation** (`Form` validators, prompt checks) acts as an initial defense against invalid data initiating erroneous asynchronous calls. Within `StatefulWidget` `State` objects, **`mounted` checks are diligently used after `await` calls** before any `BuildContext` interaction (e.g., `setState`, `context.read`, `ScaffoldMessenger.of(context)`), guarding against errors from disposed widgets; reading `BuildContext`-dependent objects *before* `await` is preferred where feasible. A **structured error propagation mechanism** is in place: service layer methods (`AuthService`, `FirestoreService`, etc.) encapsulate external calls in `try-catch` blocks, typically rethrowing specific exceptions or returning `Future<String?>` (where `String` is an error message, `null` is success), allowing the UI layer to receive clear error information. **User-facing error feedback is consistently provided via non-intrusive `SnackBar` messages**, displayed using `ScaffoldMessenger`, making the UI responsible for context-aware error presentation. Backend **Cloud Functions also implement robust `try-catch` blocks** for all critical operations, returning meaningful HTTP status codes and JSON error payloads, which the Flutter application handles. This comprehensive strategy contributes significantly to a stable, responsive, and user-friendly application.
+
+### Modular and Extensible Architecture: Decoupled UI Components and Services for Maintainability and Scalability
+Haikuverse is architected with a strong emphasis on modularity and extensibility, facilitating long-term maintainability, ease of testing, and efficient feature scaling. This is achieved through a clear separation of concerns across distinct layers and the encapsulation of functionalities within reusable components and services. Within `lib/widgets/`, custom UI components like `BottomNavigationBarWidget`, `ProfileImagePicker`, `OverwriteConfirmationDialog`, `StarPreviewWidget`, `AudioToolkitModal`, `ConstellationDetailModalWidget`, `ConstellationInfoDisplayWidget`, `ConstellationViewPainter`, `MiniConstellationGraphView`, `StarSlideshowWidget`, and `ZeitgeistMap` are designed as self-contained units with well-defined responsibilities and clear input/output contracts (props and callbacks). This decoupling allows independent development, testing, and updates, and promotes reuse across screens. For example, `ProfileImagePicker` handles image selection and display, delegating upload/sanitization to its parent via a callback. This component-based UI design is complemented by a dedicated **Service Layer** (`lib/services/`) which abstracts all interactions with external systems and backend logic. This layer is a direct implementation of the **Repository Pattern**, which abstracts all data sources (from direct Firestore queries to backend Cloud Function calls) behind a unified, consistent API. Services like `AuthService`, `FirestoreService` (managing Firestore CRUD, streams, and calls to backend functions for Vector Search/publishing), `StorageService` (Firebase Storage interactions), `VertexAIService` (client-side Imagen calls), and `GeminiService` (client-side calls to fable/advice Cloud Functions) provide a clean API to the application. Screens and providers interact with these services rather than directly with Firebase/GCP SDKs or `http.Client`. This abstraction is paramount for testability, enabling easy mocking of services for isolated unit and widget tests. It also enhances extensibility: changes to an underlying storage mechanism or AI service provider would largely be confined to the respective service class, minimizing impact on the rest of the codebase. This deliberate layering and decoupling forms an architecture primed for future expansion and adaptation with greater ease and less risk.
+
+### Automated Testing as a Cornerstone of Quality and Maintainability
+Automated testing is not an ancillary activity in the Haikuverse project; it is a **foundational pillar of the development process and a non-negotiable aspect of professional software engineering.** This commitment ensures high code quality, facilitates ongoing maintenance, and guarantees predictable application behavior. A comprehensive, multi-layered testing strategy, leveraging Flutter's robust testing framework (`flutter_test`) and industry-standard mocking techniques (primarily `mockito` with `build_runner` for mock generation), provides extensive test coverage **—currently exceeeding 475 individual tests across models, providers, screens, and custom widgets—** enabling rapid iteration and feature development with unwavering confidence. The approach is guided by a proactive, often Test-Driven Development (TDD) mindset, where tests for "feature-complete" components are developed concurrently with implementation. An unyielding commitment to testable code design, primarily through **Dependency Injection (DI)**, allows for effective mocking and isolated testing; this has been pivotal for complex integrations like AI services (simulating `http.Client` responses for Cloud Functions) and platform-specific functionalities (using custom mocks for `image_picker_platform_interface` or `firebase_auth_mocks` for authentication states). The strategy encompasses **unit tests** to meticulously verify isolated logic within data models (serialization, validation) and providers (state transitions, method correctness), ensuring foundational accuracy. Complementing these are **widget tests** focusing on UI rendering and interaction for individual components and entire screens, validating UI responses to various states and user inputs, and confirming proper integration with mocked dependencies (including `SharedPreferences.setMockInitialValues` for cached data simulation). Key techniques such as **strategic mocking** to define behavior and verify interactions, realistic authentication simulation, **"golden" file** testing for validating custom painters (ConstellationViewPainter, ZeitgeistMap), and careful **test isolation** (e.g., in setUp/tearDown) ensure thorough validation and prevent test bleed-over. This disciplined testing regimen serves as a critical **defense against regressions**, manages technical debt proactively, and reflects a deep commitment to **engineering excellence and a high-quality, bug-free user experience.** Future enhancements include the implementation of integration tests for end-to-end user flow validation and dedicated testing for backend Cloud Function logic. Test execution is managed via standard `flutter test` and mock regeneration with `flutter pub run build_runner build --delete-conflicting-outputs`.
+
+### Non-Toxic Social Interaction by Design
+The application's user experience and social features are guided by a philosophy of **non-toxic social interaction by design**. This is achieved through two primary strategies: progressive disclosure of complexity and creator-centric content moderation.
+
+**Progressive Disclosure:** The app introduces its rich feature set gradually, preventing cognitive overload and fostering intuitive engagement. A new user starts with the simple, focused interface of the `HomeScreen`. As they engage further, they can explore the multi-faceted toolkits of the `ExploreTab` or the detailed, tabbed interface of the `StarDetailPopup`. This approach ensures that users can master core functionalities before encountering more advanced social or creative tools, making the journey feel natural and rewarding rather than overwhelming. An example of this is the `StarProgressTracker` on the `HomeScreen`, which only appears after a user has favorited their first creation. It progressively reveals the next steps—pairing audio and visuals—guiding new users through the full creative process without cluttering the initial interface, while serving as a handy reminder for experienced users.
+
+**Creator-Centric Moderation:** Unlike platforms with global, unmoderated feeds, all social interaction in the Haikuverse is contextual and controlled. The `StarDetailPopup` serves as a private salon for each creation. When a user submits a comment, it is first sanitized by a Gemini harm check and then sent to the star's owner for approval via the `NotificationsScreen`. This empowers creators with full control over the discourse surrounding their work. They can approve, reject, or even report abusive comments, which automatically blocks the user from their content and creates a moderation ticket. This architecture intentionally fosters a respectful and creative community by design, placing the power of curation in the hands of the artists themselves.
+
+### Designed for Humans: An Invitation to Creative Discovery
+The Haikuverse experience begins with a deliberate statement of quality and intent. The first thing a new user sees is not a static splash screen, but a living, breathing logo — a dynamic, procedurally generated spirograph animation that is both intricate and mesmerizing. This visual manifesto immediately signals that this is no ordinary haiku application and sets a standard for the high-fidelity, multi-sensory journey the user is about to embark on, promising an adventure where technical sophistication and creative expression are deeply intertwined from the very first moment. Haikuverse is engineered as a **dynamic partner in creative exploration**, placing the human user at the very heart of an ever-unfolding journey. This guiding philosophy —**Designed for Humans**— is not an afterthought but the foundational principle shaping every architectural nuance and feature, fostering intuitive interaction, profoundly augmenting human creative potential, and championing inclusive access. It's an endeavor to ignite the spark of curiosity and make the co-creation of unique techno-poetic art an accessible, deeply personal, and endlessly engaging experience.
+
+This **human-centric vision** blossoms within the Haikuverse, an emergent cosmos born from the user's own creativity and the app's intelligent responses. Here, constellations are not static points but vibrant, storied locales. The application's **client-side procedural generation** of these constellation graphs is a deliberate artistic choice, moving beyond mere data visualization to craft unique, aesthetically compelling vector art spaces within the `HaikuverseNavigationScreen`. Users don't just observe; they visually navigate and "zorch" through these algorithmically unique realms, each layout a subtle invitation to explore further. This design philosophy of augmenting artistry through procedural generation extends from the macrocosm of the Haikuverse to the microcosm of personal identity. The user's customizable avatar frames are not static image overlays; they are miniature simulations — procedurally generated vector art driven by their own internal logic. From the swirling particles of the Comet frame to the flocking behavior in the Ecosystem frame, each one is designed to evoke a sense of emergent, living behavior. This approach champions quality over quantity, aiming to delight and surprise the user, offering them yet another medium to reflect on the beauty of artistic self-expression in a modern digital form. This sense of personal discovery is amplified by **AI-powered semantic understanding**. As users consider publishing their haikus (PublishTab) or embark on thematic quests (ExploreTab), Vertex AI Vector Search doesn't just return matches; it unveils pathways, suggesting constellations that resonate with the nuanced meaning of their work or the articulated desires of their imagination. The Haikuverse itself breathes with an **evolving fable-driven knowledge graph**, where AI-generated narratives for each constellation are embedded and interconnected based on thematic similarity. This is complemented by the **Zeitgeist Engine**, which analyzes community-wide creative activity to produce a dynamic "word cloud" of trending themes in the ExploreTab. This feature, rendered as an interactive spiral of floating words via the ZeitgeistMap widget, offers an intuitive, at-a-glance understanding of the community's collective consciousness, inviting users to explore popular concepts. This multi-faceted approach—combining personalized recommendations with community trends—invites **progressive discovery**, where one story can lead to another and one theme can unfold into a tapestry of related ideas, making exploration itself a creative act.
+
+### Augmented Artistry: The Creator's Journey
+The augmentation of human creativity is not a passive bestowal of content but an active collaboration. Within the `ConstellationCustomizationScreen`, users become co-authors of their Haikuverse, working with **Gemini** (via `GeminiService`) to weave evocative fables and with **Imagen 3** (via `VertexAIService`) to conjure visual representations, transforming abstract collections of haikus into deeply personal, mythic territories. This act of giving story and image to their creations fosters a profound sense of ownership and connection. The addition of Google Cloud **Text-to-Speech**, experienced through the `AudioToolkitModal`, further enriches this, allowing the user's poetic voice to take literal form, adding another layer of sensory engagement and accessibility. Finally, this entire creative cycle is completed by empowering the user to share their finished work outside the Haikuverse through beautifully formatted *'haiku cards,'* turning a personal creation into an act of positive outreach.
+
+Every interaction is crafted to minimize friction and maximize creative momentum, nurturing **cognitive flow and intuitive engagement.** The straightforward `HomeScreen` prompt, the immediate yet unobtrusive feedback during asynchronous AI operations, the unambiguous `FavoriteButton`, the at-a-glance `StarProgressTracker` checklist, the tactile tap-to-navigate gestures within the `MiniConstellationGraphView`, and the intelligently guided publishing flow—all are designed to feel like natural extensions of the user's creative intent. The `StarDetailPopup`, with its synchronized audio-visual "full experience" playback, is a microcosm of this design: an immersive dive into a single creative moment, presented effortlessly. This commitment to a frictionless experience extends even to the application's entry points. Recognizing that user preference is paramount, significant engineering effort was invested to create a hybrid, platform-aware authentication system. This provides users with the seamless, one-tap convenience of the official Google Sign-In experience on the web, while using the standard mobile plugin for Android — a complex implementation undertaken solely to respect the user's choice and make their first interaction with the app as effortless as possible.
+
+**Accessibility and inclusivity** are integral, not addons. `Semantics` widgets provide vital context for assistive technologies, `SelectableText` ensures content is portable, and the planned image-to-text features will further broaden access. Diverse TTS voices acknowledge and cater to varied preferences. Even **nickname validation**, while a security measure, contributes to a respectful and welcoming community space, inviting users to express their identity thoughtfully.
+
+Haikuverse, therefore, offers a **curated yet profoundly flexible creative environment.** Client-side prompt engineering cedes significant artistic control to the user. Persistent cloud storage (Cloud Firestore and Firebase Storage) acts as a reliable guardian of their creative artifacts—profiles, favorite haikus, associated images, audio files, and entire constellation narratives—ensuring their evolving Haikuverse is preserved and accessible across devices. Features like multiple image save slots and the deep customization options for constellations encourage not just creation, but *re-creation*, interpretation, and a continuous, iterative dialogue with their own imagination and the AI's generative capabilities. It is in this dynamic interplay, this invitation to explore, to personalize, to give deeper meaning, that Haikuverse seeks to maximize the inherent human delight in discovery, artistry, and the sublime experience of seeing one's own creative spark amplified and reflected in a universe of their own making.
+
+---
+
+## License
+
+Copyright © 2025 Fancyland, LLC
