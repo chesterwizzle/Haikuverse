@@ -825,12 +825,10 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
 **b. Firebase Functions Setup and Deployment:**
 
 * **Navigate to `functions` Directory:** From the project root, `cd functions`.
-* **Install Node.js Dependencies:** Run `npm install`. This will install packages like `firebase-functions`, `firebase-admin`, `axios`, `@google-cloud/aiplatform`, `@google-cloud/text-to-speech`, `@google-cloud/storage`, `google-auth-library`, and `uuid` as defined in `package.json`.
+* **Install Node.js Dependencies:** Run `npm install` to install the required Node.js dependencies. The backend architecture is built around the Firebase Admin SDK, using its integrated client (`admin.storage()) to manage all Cloud Storage operations, which simplifies dependency management and unifies access to Firebase services.
 * **Configure `functions/index.js`:**
     * **Project IDs:** Verify that the `project` variable (used for Vertex AI client initialization) and any `projectNumber` constants (used for constructing full resource names for Vector Search) are set to your correct Google Cloud project ID and number.
-    * **Vector Search Constants:** Update the placeholder constants for your **Published Stars Index** and **Constellation Fables Index** with the actual `Index ID`, `Index Endpoint ID`, `Deployed Index ID`, and `Public Endpoint Domain Name` you noted from your GCP setup. Example placeholders to look for and replace:
-        * `HAIKU_STAR_INDEX_ID`, `HAIKU_STAR_ENDPOINT_ID`, `DEPLOYED_HAIKU_STAR_INDEX_ID`, `HAIKU_STAR_MATCH_SERVICE_DOMAIN` (for the published stars/haikus index).
-        * `FABLE_INDEX_ID_FOR_CLEANUP`, `FABLE_INDEX_ID_FOR_UPSERT`, `FABLE_INDEX_ENDPOINT_ID_FOR_QUERY`, `FABLE_DEPLOYED_ID_FOR_QUERY`, `FABLE_MATCH_SERVICE_DOMAIN` (for the fables index).
+    * **Vector Search Constants:** Update the hardcoded ID string values for your Published Stars Index and Constellation Fables Index. Search within the relevant Cloud Functions (e.g., `publishStar`, `getThemeBasedConstellationRecommendations`) for constants and variables holding these values and replace them with the actual `Index ID`, `Index Endpoint ID`, `Deployed Index ID`, and `Public Endpoint Domain Name` from your GCP setup.
 * **Deploy Functions:** Navigate back to the project root (`cd ..`) and deploy:
 ```bash
    firebase deploy --only functions
