@@ -981,8 +981,14 @@ Publishing to the Google Play Store introduced a separate set of challenges inhe
 * **Resolving Release-Only Failures with ProGuard/R8:** After successfully publishing, the release version of the app exhibited the same silent audio bug, but for a different reason. The cause was identified as Android's release-build tool, **R8 (ProGuard)**, which performs aggressive **code shrinking** to reduce app size. R8 was incorrectly identifying essential native code within the `ExoPlayer` library (the engine behind `just_audio`) as "unused" and stripping it from the final build. The solution was to create a `proguard-rules.pro` file to provide the build tool with a "keep" list, explicitly instructing it to preserve all necessary classes for Flutter plugins, Firebase services, and the `ExoPlayer` library. This ensured that the optimized release build retained full functionality, resolving the final and most obscure hurdle to a successful production launch.
 
 * **End-to-End Purchase Validation with License Testing:** Integrating monetization required moving beyond emulators and debug builds to validate the entire transaction lifecycle in a production-like environment. This was achieved by setting up an **internal testing track** in the Google Play Console and configuring specific Google accounts as **license testers**. This sandbox environment allowed for comprehensive, end-to-end testing of the real purchase flow—from the user tapping "buy" in the Flutter UI to the `in_app_purchase` package communicating with the Play Store, and finally to our backend `validateAndroidPurchase` Cloud Function securely verifying the receipt with the Google Play Developer API and granting the entitlement in Firestore—all without incurring real financial charges. This step was essential for ensuring the entire monetization architecture was robust, secure, and reliable before launch.
----
 
+### Mastering Native Presentation Configuration
+
+* **Adaptive Icon:** The standard `flutter_launcher_icons` build resulted in a "boxed," small icon. This was corrected by overriding the config in `pubspec.yaml` to specify separate layers: a transparent `adaptive_icon_foreground` asset and an `adaptive_icon_background` color. This allows the native Android launcher to correctly mask the full-sized layers, filling the icon shape.
+
+* **Android 12+ Splash Screen:** The `flutter_native_splash` generator left the modern splash screen broken, defaulting to the icon. This required a complex 4-part native fix: hardcoding `compileSdk = 34` in build.gradle.kts, manually adding the `androidx.core:core-splashscreen` dependency, fixing the theme parent in `values-v31/styles.xml` to point to `@style/Theme.SplashScreen` (instead of the incorrect `@android:style/`), and declaring the new icon assets in the pubspec.yaml `assets: list`.
+
+---
 ## License
 
 Copyright © 2025 Fancyland, LLC
