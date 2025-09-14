@@ -141,10 +141,12 @@ flowchart LR
         ConstellationsScreenDef
         PreferencesScreenDef
         FollowersScreenDef
-        LegalFeedbackScreens
         MonetizationScreens
         AuthVerificationScreens
         Haikuverse
+        FeedbackNotificationsScreens
+        AccountMgmtScreenDef
+        AppShell
   end
  subgraph AuthServiceFlutter["Auth & Verification Services"]
         SignInMethod["signInWith..."]
@@ -283,7 +285,7 @@ flowchart LR
     style ConstellationsScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style PreferencesScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style FollowersScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
-    style LegalFeedbackScreens fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+    style FeedbackNotificationsScreens fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style MonetizationScreens fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style AuthVerificationScreens fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style Haikuverse fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
@@ -298,11 +300,10 @@ flowchart LR
     style UIScreens stroke:#4b0082,stroke-width:3px
     style ClientServices fill:#f8f8ff,stroke:#4b0082,stroke-width:3px
     style Backend stroke:#4b0082,stroke-width:3px
-    style main_dart fill:#f8f8ff,stroke:#b0082,stroke-width:3px
-    style AuthWrapper fill:#e6e6fa,stroke:#b0082,stroke-width:1px
     style AppShell fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style AccountMgmtScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style AccountMgmtFuncs fill:#E8F0FE,stroke:#4285F4,stroke-width:1px
+    style main_dart fill:#E8F0FE,stroke:#4285F4,stroke-width:1px
 ```    
 
 ---
