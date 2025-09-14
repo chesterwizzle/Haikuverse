@@ -5,7 +5,7 @@
 
 Haikuverse is a Flutter application designed as a rich, multi-sensory platform for creative expression. It empowers users to generate evocative haiku poems with **Google Gemini**, complement them with compelling imagery from Google Cloud's **Imagen 3**, and create dynamic, human-like audio narrations using Google Cloud's premium Chirp3 HD **Text-to-Speech** voices. These creations are shared within an interactive "Haikuverse," a community space where users can follow their favorite poets, earn achievements, and express their identity through deeply personalized avatars featuring unique, procedurally generated animated frames. To extend this creative ecosystem, a dedicated **Sharing Tab** allows users to export their work as beautifully formatted 'haiku cards,' fostering a "trading card" metagame and providing a simple way to bring the app's positive, human-centric energy to friends and family. This entire experience is grounded in a philosophy of non-toxic social interaction by design.
 
-The application is built on a robust and scalable cloud architecture. Secure user management is handled by **Firebase Authentication**, reinforced by **Firebase App Check** to ensure requests originate from authentic app instances using Play Integrity on Android and reCAPTCHA Enterprise on the web. User profiles, creative works, and community data are managed through a sophisticated data model that strategically segregates private (`/users`) and public (`/public_profiles`) information within **Cloud Firestore**. All media assets are managed securely in **Firebase Storage**. A powerful serverless backend, architected with Google **Cloud Functions**, orchestrates all critical operations, from secure AI interactions to essential content safety checks using the powerful safety filters of **Google Gemini** to secure **Google Play Store** subscription and quota management.
+The application is built on a robust and scalable cloud architecture. Secure user management is handled by **Firebase Authentication**, reinforced by **Firebase App Check** to ensure requests originate from authentic app instances using Play Integrity on Android and reCAPTCHA Enterprise on the web. This is further strengthened by a full suite of account management tools, including secure password changes and a comprehensive, irreversible account deletion process. User profiles, creative works, and community data are managed through a sophisticated data model that strategically segregates private (`/users`) and public (`/public_profiles`) information within **Cloud Firestore**. All media assets are managed securely in **Firebase Storage**. A powerful serverless backend, architected with Google **Cloud Functions**, orchestrates all critical operations, from secure AI interactions and content safety checks to **Google Play Store** subscription and full data lifecycle management.
 
 What distinguishes Haikuverse are its advanced discovery and visualization features. A cornerstone of the user experience is a client-side **procedural generation system** that uses a heuristic algorithm to construct unique 2D vector art "constellation" graphs, offering a novel way to navigate the Haikuverse. On the backend, **Vertex AI Vector Search** powers a sophisticated semantic discovery engine. This engine not only provides intelligent recommendations but also builds and maintains a dynamic **Knowledge Graph** of thematically linked constellations, a system made resilient by a suite of on-demand and scheduled maintenance functions that automatically prune dead links and heal orphaned nodes to ensure persistent data integrity across the entire Haikuverse. A scheduled **Zeitgeist Engine** analyzes community activity to highlight trending themes, allowing users to explore the Haikuverse through meaningful connections that go far beyond simple keyword searching.
 
@@ -15,9 +15,11 @@ This document offers a comprehensive technical deep-dive into Haikuverse's archi
 
 * **Designed for Humans:** Haikuverse is architected as a cohesive creative experience designed to elevate human dignity, democratize access to powerful AI, and unleash creativity. The application serves as a dynamic partner in creative exploration, augmenting human artistry rather than replacing it. From the intuitive interface to the creator-centric controls, the entire experience is crafted to foster a rewarding community and maximize the inherent human delight in discovery and self-expression.
 
-* **Secure & Resilient Without Compromise:** The application is built on a scalable serverless backend using **Google Cloud Functions** and **Firestore**. Security is paramount, enforced through **Firebase App Check** attestation and a data model that strictly segregates private and public user data. The system even includes self-healing maintenance functions for its `Knowledge Graph`, designed for long-term data integrity and resilience.
+* **Secure & Resilient Without Compromise:** The application is built on a scalable serverless backend using **Google Cloud Functions** and **Firestore**. Security is paramount, enforced through **Firebase App Check** attestation, a data model that strictly segregates private and public user data, and a full suite of account management tools. The system even includes self-healing maintenance functions for its `Knowledge Graph`, designed for long-term data integrity and resilience.
 
-*  **Accessible & Fair for All Creators:** The application is supported by a transparent and ethical subscription model managed through the **Google Play Store**. With distinct tiers designed for both casual poets and dedicated creators, plus flexible, non-expiring Quota Boosts, you can choose the level of access that fits your creative practice. An ethical spending cap of $250 per month ensures a responsible and human-centric experience for everyone.
+* **Empowerment Through Full Data Sovereignty:** Haikuverse puts you in complete control of your digital identity. The application provides a full suite of account management tools, including secure in-app password changes and a comprehensive, irreversible account deletion process. This isn't just a simple database entry removal; it's a robust, cascading operation that permanently erases every trace of a user's presence—from authentication records and profile data to every published star, comment, and stored media file—ensuring true data permanence and the ultimate right to be forgotten.
+
+* **Accessible & Fair for All Creators:** The application is supported by a transparent and ethical subscription model managed through the **Google Play Store**. With distinct tiers designed for both casual poets and dedicated creators, plus flexible, non-expiring Quota Boosts, you can choose the level of access that fits your creative practice. An ethical spending cap of $250 per month ensures a responsible and human-centric experience for everyone.
 
 * **Co-Create Techno-Poetic Art:** Guide powerful AI partners (**Gemini**, **Imagen 3**, and **Text-to-Speech**) to transform your creative spark into multi-sensory experiences. Move beyond simple generation to augment your artistry, weaving evocative haiku, stunning visuals, and dynamic audio narrations into a unified whole.
 
@@ -32,6 +34,7 @@ This document offers a comprehensive technical deep-dive into Haikuverse's archi
 * **Uncover a Deeper Web of Meaning:** Journey beyond simple keyword searches with a semantic discovery engine powered by **Vertex AI Vector Search**. This system doesn't just find content; it reveals the invisible, thematic threads that connect poems and fables, building a dynamic knowledge graph that invites you to get lost in a universe of interconnected ideas.
 
 * **Tap into the Collective Consciousness:** Discover what inspires the community through the `Zeitgeist Engine`. This unique feature analyzes creative activity across the platform to reveal trending themes, offering a real-time glimpse into the evolving pulse of the Haikuverse and providing new avenues for your own creative exploration.
+
 
 ---
 ## 2. Functional Block Diagram of the Haikuverse App
@@ -48,18 +51,17 @@ config:
     textColor: '#333'
 ---
 flowchart LR
- subgraph MyAppWidgetState["_MyAppState (Central Logic)"]
+ subgraph AppShell["AppShell (Main UI)"]
     direction LR
         Listeners["Auth & Data Listeners"]
         CoreLogic["Core Favorite/Asset Mgmt"]
-        UINav["UI Navigation State"]
   end
  subgraph main_dart["**main.dart**"]
     direction TB
         Main["main - App Entry Point"]
         Initialization["Initialization & DI"]
         GlobalProviders["Global State Providers"]
-        MyAppWidgetState
+        AuthWrapper["AuthWrapper<br>(Initial Route Logic)"]
   end
  subgraph HomeScreenDef["HomeScreen"]
         HaikuGenUI["Haiku Generation UI & Logic"]
@@ -99,10 +101,9 @@ flowchart LR
  subgraph FollowersScreenDef["Followers Screen"]
         FollowersScreen["FollowersScreen"]
   end
- subgraph LegalFeedbackScreens["Legal, Feedback<br>&amp; Notifications"]
-    direction TB
+ subgraph FeedbackNotificationsScreens["Feedback & Notifications"]
+     direction TB
         FeedbackScreen["FeedbackScreen"]
-        LegalScreens["EULA & Privacy Screens"]
         NotificationsScreen["NotificationsScreen"]
   end
  subgraph MonetizationScreens["Subscription &amp;<br>Quota Management"]
@@ -115,6 +116,11 @@ flowchart LR
         EulaScreen["EULA Acceptance Screen"]
         VerificationScreen["VerificationScreen<br>UI &amp; Logic"]
         GoogleSignInLogic["Google Sign-In (Plugin & GSI)"]
+  end
+ subgraph AccountMgmtScreenDef["Account Management"]
+    direction TB
+        AccountManagementScreen["AccountManagementScreen"]
+        LegalScreens["EULA & Policy Links"]
   end
  subgraph Haikuverse["Haikuverse Experience"]
     direction TB
@@ -187,9 +193,10 @@ flowchart LR
         SocialFuncs["Social & Moderation"]
         FeedbackFuncs["Feedback & Admin"]
         ZeitgeistFuncs["Zeitgeist Engine"]
-        GraphHealer["KG Maintenance (Scheduled & On-Demand)"]
+        GraphHealer["KG Maintenance<br>(Scheduled & On-Demand)"]
         DBTriggers["Database Triggers"]
         MonetizationFuncs["Subscription & Quota Mgmt"]
+        AccountMgmtFuncs["Account & Data Lifecycle"]
   end
  subgraph CloudAPIs["External Cloud APIs"]
     direction TB
@@ -211,8 +218,11 @@ flowchart LR
     HaikuverseNavigationScreen -- Shows Fable --> FableDetailPopup
     UIScreens -- Initiates actions through --> ClientServices
     ClientServices -- Orchestrates calls to --> Backend
-    Main --> Initialization & GlobalProviders & MyAppWidgetState
+    Main --> Initialization & GlobalProviders & AuthWrapper
     Initialization <--> FirebaseAppCheck
+    AuthWrapper --> AppShell
+    AuthWrapper -- Routes to --> AuthScreen
+    AppShell -- Uses state from --> GlobalProviders
     Listeners -- Updates --> CoreLogic
     AuthScreen --> VerificationScreen & EulaScreen
     VerificationScreen --> EulaScreen
@@ -220,7 +230,7 @@ flowchart LR
     SubscriptionScreen --> HomeScreenDef
     AuthVerificationScreens <-- Authenticates via --> AuthServiceFlutter
     AuthScreen <--> GoogleSignInLogic
-    GlobalProviders -- Provides auth state to --> NotificationsScreen
+    GlobalProviders -- Provides state to --> AppShell
     CoreLogic -- Provides callbacks to --> HomeScreenDef & FavoritesScreenDef & StarsScreenDef & ConstellationsScreenDef
     CoreLogic -- Triggers asset management via --> FirestoreServiceFlutter & StorageServiceFlutter
     HomeScreenDef <-- Generates content via --> GeminiServiceFlutter
@@ -238,7 +248,8 @@ flowchart LR
     SettingsTab <-- Manages profile via --> FirestoreServiceFlutter
     SettingsTab <-- Sanitizes content via --> SanitizationFuncs
     SettingsTab <-- Signs out via --> AuthServiceFlutter
-    SettingsTab -- Navigates to --> LegalFeedbackScreens & FollowersScreen
+    SettingsTab -- Navigates to --> FeedbackNotificationsScreens & FollowersScreenDef & AccountMgmtScreenDef
+    AccountManagementScreen -- Manages password via --> AuthServiceFlutter
     CustomizationTabDef <-- Manages customizations via --> FirestoreServiceFlutter
     FollowersScreen -- Fetches follower data via --> FirestoreServiceFlutter
     SharingTab -- Loads assets via --> StorageServiceFlutter & FirestoreServiceFlutter
@@ -260,8 +271,9 @@ flowchart LR
     MonetizationFuncs -- Updates entitlements in --> FirestoreDatabaseBackend
     ZeitgeistFuncs -- Analyzes & Writes to --> FirestoreDatabaseBackend
     DBTriggers -- Triggered by writes to --> FirestoreDatabaseBackend
-    FirestoreServiceFlutter -- Triggers Functions --> PublishingFuncs & SocialFuncs & FeedbackFuncs & MonetizationFuncs
-    style MyAppWidgetState fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+    FirestoreServiceFlutter -- Triggers Functions --> PublishingFuncs & SocialFuncs & FeedbackFuncs & MonetizationFuncs & AccountMgmtFuncs
+    AccountMgmtFuncs <--> FirebaseAuthBackend & FirestoreDatabaseBackend & FirebaseStorageBackend
+
     style SettingsTab fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
     style CustomizationTabDef fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
     style SharingTab fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
@@ -287,6 +299,10 @@ flowchart LR
     style ClientServices fill:#f8f8ff,stroke:#4b0082,stroke-width:3px
     style Backend stroke:#4b0082,stroke-width:3px
     style main_dart fill:#f8f8ff,stroke:#b0082,stroke-width:3px
+    style AuthWrapper fill:#e6e6fa,stroke:#b0082,stroke-width:1px
+    style AppShell fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+    style AccountMgmtScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
+    style AccountMgmtFuncs fill:#E8F0FE,stroke:#4285F4,stroke-width:1px
 ```    
 
 ---
@@ -324,43 +340,29 @@ This file serves as the primary entry point and central orchestrator of the Flut
     * `ThemeProvider`: Manages the application's visual theme, using `SharedPreferences` and `FirebaseAuth` for user-specific, device-cached theme preferences.
     * `NicknameProvider`: Manages the user's display nickname, using `SharedPreferences` and `FirebaseAuth` for user-specific, device-cached nickname persistence.
     * `IndexProvider`: Manages the integer index controlling navigation within the `StarsScreen` and `PublishTab`.
+    * `NavigationProvider`: Manages the integer index controlling the main `BottomNavigationBar`, decoupling the primary UI navigation from content-specific state.
     * `SignOutProvider`: Handles the application's sign-out flow and related state, using `FirebaseAuth`.
     * `AuthEmailProvider`: Tracks and provides the authenticated user's email address, using `FirebaseAuth`.
     * `CurrentImageProvider`: Manages the locally persisted tracking state (via `SharedPreferences`) of the last viewed image URL and its unsaved/saved status for each haiku, primarily used by `StarsScreen`.
     * `AudioPlayerProvider`: Manages the shared `just_audio` player instance and its state for audio playback.
     * `QuotaProvider`: Provides a real-time, reactive state for the user's current subscription status, monthly image quota, and remaining boost images by listening to the user's private profile stream in Firestore.
 
-* **Root `MyApp` Widget (Application Container):** The top-level `StatefulWidget`.
-    * Receives instances of all core services (`AuthService`, `FirestoreService`, etc.) and `FirebaseAuth` via constructor arguments for dependency injection.
-    * The `_MyAppState` manages critical UI navigation state and the local, real-time reflection of the user's favorite haikus.
+* **Root `MyApp` Widget and Startup Flow:**
+    * The top-level `MyApp` widget sets the application's theme and defines the named routes (`/auth`, `/home`, `/subscription`, etc.).
+    * Its initial route points to a temporary `AuthWrapper` widget. This widget performs a critical one-time check at startup, validating the user's session by checking their Firebase Auth state, EULA acceptance, and active subscription status in Firestore, before using `Navigator.pushReplacementNamed` to direct them to the correct initial screen. This robust startup logic prevents screen flickering during sign-in/sign-out and ensures a smooth user onboarding experience.
 
-* **`_MyAppState` - Central Application State and Logic:**
-    * `_currentIndex`: Integer controlling the active screen via the `BottomNavigationBarWidget` and `IndexedStack`.
-    * `_favorites`: `List<Haiku>` serving as a local, in-memory reflection of the real-time favorite haikus streamed from Cloud Firestore.
-    * `_maxFavorites`: Defines the limit for favorite haikus.
-    * `_favoritesSubscription`, `_authStateSubscription`,`_notificationsSubscription`: StreamSubscriptions for managing listeners to Firestore favorites, Firebase auth state, and new user notifications respectively.
-    * `initState():` Sets up `_authStateSubscription` to trigger `_subscribeToFavorites()` and `_subscribeToNotifications()` on login. On logout, it triggers the corresponding unsubscribe methods. The explicit Google Sign-Out logic is handled by the `SignOutProvider` to better manage the application's state.
-    * `_subscribeToFavorites(String userId)`: Listens to the user's Firestore favorites collection via `firestoreService.getFavoritesStream()`, updating the local `_favorites` list reactively.
-    * `_unsubscribeFromFavorites()`: Cancels `_favoritesSubscription`, clears the local `_favorites` list, and resets the `IndexProvider`.
-    * `_toggleFavorite(Haiku haiku)`: Manages adding/removing haikus from Firestore via `firestoreService.addFavorite`/`removeFavorite`. Coordinates associated Firebase Storage image and audio file deletion (via `_deleteImageFromUrl` and `_deleteStorageFileByUrl` which use `storageService`) and `IndexProvider` adjustments. Relies on the Firestore stream for local list updates.
-    * `_isFavorite(String haikuText)`: Checks if a haiku text exists in the local `_favorites` list.
-    * `_removeFavorite(Haiku haiku)`: Explicitly removes a haiku from Firestore via `firestoreService.removeFavorite`. Also triggers deletion of the star from the public `/published_stars` collection and its Vector Search index via `firestoreService.triggerDeletePublishedStarFunction`. Manages Storage cleanup and `IndexProvider` adjustments.
-    * `_associateImageUrlToHaiku(String haikuId, String newImageUrl, int slotIndex)`: Saves an image URL to a specific haiku in Firestore via `firestoreService.updateFavorite`. Manages deletion of any overwritten image from Storage (via `storageService`) and updates `CurrentImageProvider`.
-    * `_triggerAudioGeneration(Haiku haiku, String voiceName, double speakingRate)`: Orchestrates audio generation by calling `firestoreService.triggerGenerateHaikuAudio()`, which handles the secure Cloud Function invocation. It then updates the local state for immediate UI feedback.
-    * `dispose()`: Cancels `_authStateSubscription`, `_favoritesSubscription`, and closes the `httpClient`.
+* **`AppShell` - Main UI Shell and Core State Logic:**
+    * Once a user is authenticated and fully onboarded, they are directed to the `AppShell` widget, which serves as the main application container.
+    * **`_AppShellState`** is the new central state manager, responsible for:
+        * Managing the `_favorites`: A local, in-memory `List<Haiku>` that is a real-time reflection of the user's Firestore data, kept in sync via `_favoritesSubscription`.
+        * Managing `_hasNotifications`: A boolean flag that reactively updates the notification icon in the `AppBar`.
+        * Orchestrating Core Logic: Contains the high-level callback functions (`_toggleFavorite`, `_removeFavorite`, `_associateImageUrlToHaiku`, etc.) that are passed down to child screens to interact with the `_favorites` list and trigger service calls.
+        * Lifecycle Management: Uses an `_authStateSubscription` to automatically subscribe to and unsubscribe from user-specific data streams (`favorites`, `notifications`) upon login and logout.
 
-* **Root Application UI Structure (`MaterialApp` Widget):**
-    * Sets the application title, applies the current theme from `ThemeProvider`.
-    * Defines `routes` for navigation, injecting services into screens.
-    * Uses a `FutureBuilder` to call the `_getInitialRoute` helper method, which asynchronously determines the correct starting screen (`/auth`, `/eula-acceptance`, `/subscription`, or `/home`) by checking the user's Firebase Authentication state, EULA acceptance, and active subscription status in Firestore.
-    * A custom `SubscriptionGate` widget wraps the home screen route, listening to the `QuotaProvider` to automatically redirect non-subscribed users to the paywall, effectively enforcing the subscription model.
-
-* **`_buildHomeScreen()` - Main Application UI Construction (`Scaffold`):**
-    * `AppBar`: Dynamically titled based on `_currentIndex` and includes a real-time notifications icon driven by the `_hasNotifications` flag.
-    * `body: IndexedStack`: Efficiently renders the active screen (`HomeScreen`, `FavoritesScreen`, `StarsScreen`, `ConstellationsScreen`, `PreferencesScreen`) while maintaining the state of inactive ones. Passes the reactive `_favorites` list and relevant callbacks/services to child screens.
-    * `bottomNavigationBar: BottomNavigationBarWidget`: Custom widget for main navigation, themed and driven by `_currentIndex` and `_onItemTapped`.
-
-* **`_onItemTapped(int index)` - Bottom Navigation Handler:** Updates `_currentIndex` via `setState` to switch displayed screens.
+* **`AppShell` - UI Construction (`Scaffold`):**
+    * `AppBar`: Dynamically titled based on the `NavigationProvider`'s current index.
+    * `body: IndexedStack`: Efficiently renders the active screen (`HomeScreen`, `FavoritesScreen`, etc.), driven by the `NavigationProvider`.
+    * `bottomNavigationBar: BottomNavigationBarWidget`: The main navigation bar, which receives its `currentIndex` from and reports taps to the `NavigationProvider`.
 
 ### 3.2 User Interface Layer (UI Screens, Widgets & Theming)
 
@@ -409,7 +411,7 @@ These are the primary top-level screens accessible via the bottom navigation bar
     *   **Logic:** Initializes the `TabController` and provides the framework for its child tabs, passing down injected services like `FirestoreService` and `FirebaseAuth`.
 
 *   **`settings_tab.dart` - Core User Settings:**
-    *   **Purpose:** Allows users to manage their profile (nickname, profile picture), application theme, and access legal information and feedback forms.
+    *   **Purpose:** Allows users to manage their profile (nickname, profile picture), application theme, and access feedback forms and advanced account management tools.
     *   **Key UI:** `ProfileImagePicker` for avatar, `TextFormField` for nickname, "Save Changes" and "Sign Out" buttons, `CarouselSlider` for theme selection, and links to legal/feedback screens.
     *   **Logic:**
         *   Loads user profile, prioritizing Firestore.
@@ -490,6 +492,7 @@ These components provide focused UIs for specific tasks or display contextual in
 *   **`constellation_detail_modal.dart`:** Modal to show details of a selected constellation and confirm publishing.
 *   **`constellation_customization_screen.dart`:** Allows constellation owners to generate and save AI-created fables and images, and manages the knowledge graph update workflow.
 *   **`subscription_screen.dart` & `quota_boost_screen.dart`:** A suite of screens dedicated to monetization. `SubscriptionScreen` serves as the primary paywall for new users, fetching and displaying products directly from the Google Play Store using the `in_app_purchase` package. `QuotaBoostScreen` provides a context-aware interface for subscribed users to purchase additional, non-expiring image quota or upgrade their subscription tier. Both screens orchestrate the purchase flow and trigger secure backend validation.
+*   **`account_management_screen.dart`:** A dedicated screen for critical, sensitive user actions. It provides access to legal and policy documents (EULA, Privacy, Subscription Policy), a secure in-app interface for changing passwords (which handles the mandatory re-authentication flow), and a clearly demarcated "Danger Zone" for initiating a full, irreversible account deletion.
 
 #### Reusable UI Widgets (`lib/widgets/`)
 
@@ -542,7 +545,7 @@ The application's data models serve as a crucial contract for structuring data a
 
 This layer abstracts interactions with Firebase, Google Cloud services, and backend Cloud Functions, promoting testability and modularity.
 
-*   **`auth_service.dart` (`AuthService`):** Encapsulates Firebase Authentication operations: `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`, `signInWithCredential` (for OAuth providers like Google), `signOut`, `sendPasswordResetEmail`.
+*   **`auth_service.dart` (`AuthService`):** Encapsulates Firebase Authentication operations: `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`, `signInWithCredential`, `signOut`, `sendPasswordResetEmail`, and now includes `changePassword` for secure, in-app password updates that handle the mandatory re-authentication requirement.
 *   **`password_reset_service.dart` (`PasswordResetService`):** Handles sending password reset emails via Firebase Authentication (`sendPasswordResetEmail`).
 *   **`email_verification_service.dart` (`EmailVerificationService`):** Manages sending email verification links to users (`sendVerificationEmail`).
 *   **`firestore_service.dart` (`FirestoreService`):**
@@ -569,6 +572,7 @@ This layer abstracts interactions with Firebase, Google Cloud services, and back
         *   `getThemeBasedConstellationRecommendations` (calls `getThemeBasedConstellationRecommendations` CF for Explore Tab).
         *   `getFollowersDetails` (calls `getFollowersDetails` CF).
         *   `triggerGenerateHaikuAudio` (calls `generateHaikuAudio` CF).
+        *   `triggerRequestAccountDeletion` (calls `requestAccountDeletion` CF).
     *   **Quota & Subscription Management:** `triggerConsumeImageQuota` / `triggerRefundImageQuota` (for atomic quota updates), `manageSubscription` (RPC-style endpoint for trials and upgrades), and `validateAndroidPurchase` / `validateAndroidOneTimePurchase` (for secure Google Play receipt validation).
     *   **Like Management:** `getStarLikeCountStream` (real-time like count), `hasUserLikedStar`, `likeStar`, `unlikeStar`.
     *   **Comment Management:**
@@ -615,6 +619,7 @@ This layer abstracts interactions with Firebase, Google Cloud services, and back
 
 The application uses the `provider` package for managing application-wide state and injecting dependencies.
 
+* **`navigation_provider.dart` (`NavigationProvider`):** Manages the `currentIndex` for the main `BottomNavigationBar`. Its sole responsibility is to track the user's primary navigation state, decoupling it from content-specific indexes (like `IndexProvider`) and preventing unwanted screen changes when other providers update.
 * **`theme_provider.dart` (`ThemeProvider`):** Manages the application's current visual theme (`ThemeData`) and persists the user's theme choice to `SharedPreferences` using a user-specific key.
 * **`nickname_provider.dart` (`NicknameProvider`):** Manages the user's display nickname, persisting it to `SharedPreferences` (user-specific key) and coordinating with Firestore for the canonical nickname.
 * **`index_provider.dart` (`IndexProvider`):** Manages the integer `selectedIndex` used for navigating haikus in `StarsScreen` and `PublishTab`.
@@ -679,6 +684,9 @@ The server-side logic is implemented as a suite of Google Cloud Functions (deplo
     * `resetMonthlyCounters` (Scheduler Trigger): A daily scheduled function that checks each user's `billingCycleStart` date and automatically resets their `monthlySubscriptionQuotaUsed` and `monthlySpendCapUsed` to zero when a new billing period begins.
     * `checkTrialExpirations` (Scheduler Trigger): A daily scheduled function that queries for users on an active trial whose `trialExpirationDate` has passed and automatically deactivates their subscription.
 
+*   **Account & Data Lifecycle Management:**
+    * `requestAccountDeletion` (HTTP, v2): A secure, authenticated endpoint that orchestrates the complete and irreversible deletion of a user's account. This function performs a comprehensive, cascading purge of all user-associated data, including: deleting all Firestore documents (root profiles, all subcollections like favorites and notifications), removing all user-published stars and their corresponding Vector Search index entries, performing a collection group query to delete all comments authored by the user, recursively deleting all user-owned folders and files from Cloud Storage, and finally, purging the user's record from Firebase Authentication itself.
+
 *   **Secure Media URL Generation (Internal Logic):** 
     *   Uses a dedicated, user-managed service account (`storage-url-signer`) with a permanent, non-rotating private key to generate long-lived, secure signed URLs for backend-created media assets like audio files. The private key is securely fetched on-demand from **Google Secret Manager** by a reusable helper function (`getStorageSignerApp`), adhering to the principle of least privilege and ensuring URLs do not expire unexpectedly due to key rotation.
 
@@ -692,7 +700,7 @@ This section details the journey of data through the application and the multi-l
 This section outlines the journey of data and user interactions through the Haikuverse application, providing a clear understanding of how user actions trigger specific, often asynchronous, data flows and processes across the client, backend functions, and database services.
 
 *   **App Startup and User Initialization (`main.dart`):**
-    * The application launch triggers the `main()` function... The root `MyApp` widget uses a `FutureBuilder` to run the `_getInitialRoute` logic once. This check validates the user's session, verifying their Firebase Auth state, EULA acceptance, and active subscription status before directing them to the correct screen (`/auth`, `/eula-acceptance`, `/subscription`, or `/home`). A separate `authStateChanges` listener handles background data synchronization, such as subscribing to or unsubscribing from Firestore data streams when the user's login state changes during an active session.
+    * The application launch triggers `main()`, which initializes services and providers. The root `MyApp` widget sets up named routes and immediately displays an `AuthWrapper` widget. This wrapper performs a critical, one-time check by validating the user's Firebase Auth state, EULA acceptance, and active subscription status. Based on this check, it navigates the user to the correct initial screen (`/auth`, `/eula-acceptance`, `/subscription`, or `/home`) using `pushReplacementNamed`, preventing screen flicker on sign-out. Once the user is in the main `AppShell`, a separate `authStateChanges` listener manages background data synchronization, subscribing to or unsubscribing from Firestore data streams.
 
 *   **Authentication Flow (User Onboarding & Login - `AuthScreen`, `VerificationScreen`, `EulaAcceptanceScreen`):**
     *   This flow is now orchestrated primarily within `AuthScreen` to handle the multi-step user onboarding process.
@@ -706,13 +714,13 @@ This section outlines the journey of data and user interactions through the Haik
     *   The user enters a prompt in `HomeScreen`. "Generate Haiku" triggers `_generateContent`, which constructs a full prompt, retrieves a Firebase ID token, and sends an authenticated HTTPS request to the `haikuBotCloud` Cloud Function. The backend validates the token, calls the Vertex AI Gemini API, and returns the haiku text. `HomeScreen` receives this response, enabling the Star Naming Toolkit. After a name is selected and the haiku is favorited, the naming UI is replaced by the `StarProgressTracker`, providing a clear checklist for the subsequent creative steps.
 
 *   **Favoriting/Unfavoriting Workflow (User Action -> `main.dart` -> Firestore -> Stream Update):**
-    *   Tapping the `FavoriteButton` invokes `_toggleFavorite(haiku)` in `_MyAppState`. This method calls the appropriate `FirestoreService` method (`addFavorite` or `removeFavorite`). For removals, it also triggers the `deletePublishedStar` Cloud Function and initiates the deletion of associated images and audio files from Storage. Critically, `_toggleFavorite` does *not* manually alter the local `_favorites` list. The UI updates reactively via the Firestore stream established by `_subscribeToFavorites`.
+    *   Tapping the `FavoriteButton` invokes `_toggleFavorite(haiku)` in `_AppShellState`. This method calls the appropriate `FirestoreService` method (`addFavorite` or `removeFavorite`). For removals, it also triggers the `deletePublishedStar` Cloud Function and initiates the deletion of associated images and audio files from Storage. Critically, `_toggleFavorite` does *not* manually alter the local `_favorites` list. The UI updates reactively via the Firestore stream established by `_subscribeToFavorites`.
 
 *   **Image Generation & Association Workflow (User Action -> `StarsScreen` -> Vertex AI SDK -> Storage -> `main.dart` -> Firestore -> Stream Update):**
-    * In `StarsScreen`, "Generate Image" first triggers a call to the `consumeImageQuota` Cloud Function via `FirestoreService`. This backend function atomically verifies and decrements the user's available image quota in a Firestore Transaction. Only upon success does the client proceed to call `VertexAIService` (client-side **Imagen 3 SDK**). `StorageService` then uploads the resulting image bytes to Storage. The returned URL is tracked by `CurrentImageProvider` as unsaved. On save, `_associateImageUrlToHaiku` in `_MyAppState` calls `FirestoreService.updateFavorite` to persist the new URL to the `Haiku` document in Firestore and notifies `CurrentImageProvider` to mark the image as saved. Additionally, users can launch the `ReorderImagesScreen` to visually drag and drop their three saved images into a new order, which is then persisted back to the `Haiku` document in Firestore via the `_saveReorderedImages` callback in `_MyAppState`.
+    * In `StarsScreen`, "Generate Image" first triggers a call to the `consumeImageQuota` Cloud Function via `FirestoreService`. This backend function atomically verifies and decrements the user's available image quota in a Firestore Transaction. Only upon success does the client proceed to call `VertexAIService` (client-side **Imagen 3 SDK**). `StorageService` then uploads the resulting image bytes to Storage. The returned URL is tracked by `CurrentImageProvider` as unsaved. On save, `_associateImageUrlToHaiku` in `_AppShellState` calls `FirestoreService.updateFavorite` to persist the new URL to the `Haiku` document in Firestore and notifies `CurrentImageProvider` to mark the image as saved. Additionally, users can launch the `ReorderImagesScreen` to visually drag and drop their three saved images into a new order, which is then persisted back to the `Haiku` document in Firestore via the `_saveReorderedImages` callback in `_AppShellState`.
 
 *   **Text-to-Speech Audio Generation (`FavoritesScreen`, `_MyAppState`, `FirestoreService`):**
-    * From the `AudioToolkitModal`, the `onGenerateAudioRequested` callback invokes `_triggerAudioGeneration` in `_MyAppState`. This method calls `firestoreService.triggerGenerateHaikuAudio`, abstracting the direct network call. The service sends an authenticated request to the `generateHaikuAudio` Cloud Function. The backend calls Google Cloud Text-to-Speech, uploads the MP3 to Storage, generates a secure signed URL, and atomically updates Firestore. The signed URL is returned all the way back to the client for direct, efficient streaming playback.
+    * From the `AudioToolkitModal`, the `onGenerateAudioRequested` callback invokes `_triggerAudioGeneration` in `_AppShellState`. This method calls `firestoreService.triggerGenerateHaikuAudio`, abstracting the direct network call. The service sends an authenticated request to the `generateHaikuAudio` Cloud Function. The backend calls Google Cloud Text-to-Speech, uploads the MP3 to Storage, generates a secure signed URL, and atomically updates Firestore. The signed URL is returned all the way back to the client for direct, efficient streaming playback.
 
 *   **User Profile & Customization Update (`SettingsTab`, `CustomizationTab`, `Cloud Functions`):**
     *   In `SettingsTab`, "Save Changes" triggers `_saveUserProfile`, which calls the `sanitizeNickname` Cloud Function for server-side validation. If safe, it updates the user's profile and favorites in Firestore. Image updates trigger the `sanitizeProfileImage` Cloud Function. In `CustomizationTab`, selecting a frame or flair directly calls `FirestoreService.updateUserCustomizations`, which updates the `selectedFrameId` or `selectedFlair` fields in the user's `public_profile` document.
@@ -732,12 +740,15 @@ This section outlines the journey of data and user interactions through the Haik
         *   **Achievement Unlocking:** Achievements are awarded by backend triggers. For example, when `updateLikeCount` increments a star's `likeCount` to a milestone, it idempotently calls `awardAchievement`, which updates the creator's `public_profile` and creates an `achievement_unlocked` notification.
         *   **Comment Moderation:** Submitting a comment triggers the `submitStarComment` function, which runs a Gemini harm check. If safe, it creates a `pending_approval` comment and a `new_comment` notification. The star owner, viewing this in their `NotificationsScreen`, can then approve or reject (triggering `moderateStarComment`), or report the comment for abuse.
 
+*   **Account Deletion Workflow (User-Initiated Data Purge - `AccountManagementScreen`, Cloud Function):**
+    * The user initiates deletion from the "Danger Zone" in the `AccountManagementScreen`. The client guides them through multiple confirmation dialogs. To comply with Firebase's security policies for sensitive operations, the flow requires the user to **re-authenticate** recently, using a platform-aware process that supports both password and Google Sign-In. Once fully confirmed and re-authenticated, the client calls the `requestAccountDeletion` Cloud Function. This secure backend function then executes a comprehensive, cascading purge of all user data across every service: it dismantles their social graph, anonymizes moderation records, deletes all Firestore documents and subcollections, removes all associated files from Cloud Storage, deletes their entries from the Vector Search indices, and finally, purges the user's record from Firebase Authentication itself. Upon success, the client signs the user out and navigates them back to the `/auth` screen, completing the data lifecycle.
+
 ### 4.2 Secure Access Control with Firebase Services
 
 The Haikuverse application employs a comprehensive security architecture built upon Firebase Authentication, Cloud Firestore Security Rules, and Firebase Storage Security Rules.
 
 *   **Core Security Mechanism: Firebase ID Token Verification:**
-    *   All HTTP-triggered Cloud Functions use the Firebase Admin SDK to validate the client-sent Firebase ID token in the `Authorization` header. If verification fails, the function immediately returns a `401 Unauthorized` response, preventing any further execution.
+    * All HTTP-triggered Cloud Functions use the Firebase Admin SDK to validate the client-sent Firebase ID token in the `Authorization` header. If verification fails, the function immediately returns a `401 Unauthorized` response, preventing any further execution. For highly sensitive operations like password changes or full account deletion, the application enforces an additional layer of security by requiring the user to re-authenticate their credentials recently, ensuring that a stale session cannot be used to perform destructive actions.
 
     *   **Application Attestation with Firebase App Check:** As an additional security layer, the application integrates Firebase App Check. On Android, it uses the **Play Integrity API**, and on the web, it uses **reCAPTCHA Enterprise** to attest that backend requests originate from a genuine and untampered instance of your application. This helps protect backend resources from abuse, such as billing fraud or phishing, by blocking traffic that doesn't have valid credentials, complementing the user-level security of Firebase ID tokens.
 
@@ -778,6 +789,7 @@ The application has been extended beyond a personal creative tool to include a r
     *   **Avatar Customization:** Users can personalize their public profile with animated frames and "flair" (icons) that represent their unlocked achievements.
     *   **Unified Notifications:** A centralized notification screen alerts users to all community interactions, including new comments on their stars, new followers, and achievements they've unlocked.
     *   **Community Moderation:** Star owners can moderate comments on their creations (approve/reject) or report them for abuse, which automatically blocks the user and creates a moderation ticket.
+    *   **Full Account Control:** Beyond community interaction, users have complete control over their account's lifecycle. This includes secure, in-app password changes and the option for a complete, irreversible account deletion, giving users the ultimate say over their presence in the Haikuverse.
 
 *   **Technical Architecture & Key Concepts:**
     *   **Backend-Orchestrated Logic:** Critical actions like following a user or awarding an achievement are handled by dedicated **HTTP-triggered Cloud Functions**. This ensures data integrity, security, and atomicity, as multiple database operations are executed in a single, reliable transaction on the server.
@@ -786,12 +798,12 @@ The application has been extended beyond a personal creative tool to include a r
         *   **Follower Count:** A `followerCount` is stored directly on a user's `public_profile` document and updated by Cloud Functions. 
         *   **Data Synchronization:** Public-facing data (like `likeCount` on a published star) is automatically synced back to the user's private `favorites` document via Firestore triggers.
         *   **Denormalized Notifications:** Notification documents store copies of relevant data (like nicknames) to avoid extra database lookups. Similarly, triggers like `syncNicknameOnUpdate` and `syncProfileImageOnUpdate` ensure that changes to a user's public profile are automatically fanned out to all of their published works and created constellations.
-    *   **Secure Data Modeling:** A clear separation between private (`/users`) and public (`/public_profiles`) data is enforced. Firestore Security Rules prevent users from tampering with their own follower counts or achievements and ensure users can only manage their own "following" list.
+    *   **Secure Data Modeling:** A clear separation between private (`/users`) and public (`/public_profiles`) data is enforced. Firestore Security Rules prevent users from tampering with their own follower counts or achievements and ensure users can only manage their own "following" list. This robust separation is what enables complex, secure operations like the full, cascading account deletion process.
 
 ---
 ## 6. Setup and Configuration
 
-This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for its backend logic and Firebase Authentication for secure API access. .Key backend functionalities include AI-powered content generation (haikus, fables, images), image/nickname sanitization, Text-to-Speech synthesis, secure subscription and purchase validation, semantic constellation recommendations, Haikuverse publishing, and knowledge graph management, all interacting with Firebase services, Vertex AI (Embedding API, Gemini, Imagen), and Vertex AI Vector Search. API keys for backend services are securely managed server-side. Client-side Imagen calls via the Vertex AI SDK rely on Firebase project configuration and user authentication.
+This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for its backend logic and Firebase Authentication for secure API access. Key backend functionalities include AI-powered content generation (haikus, fables, images), image/nickname sanitization, Text-to-Speech synthesis, secure subscription and purchase validation, semantic constellation recommendations, Haikuverse publishing, knowledge graph management, and a comprehensive account deletion workflow, all interacting with Firebase services, Vertex AI (Embedding API, Gemini, Imagen), and Vertex AI Vector Search. API keys for backend services are securely managed server-side. Client-side Imagen calls via the Vertex AI SDK rely on Firebase project configuration and user authentication.
 
 **Prerequisites:**
 
@@ -847,7 +859,7 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
 ```
 * **Critical: Adjust Cloud Function Memory & Timeout:**
     * After deployment, go to the **Google Cloud Console -> Cloud Functions**.
-    * For functions interacting heavily with AI services (e.g., `generateConstellationRecommendations`, `publishStar`, `generateStarNames`, `generateHaikuAudio`, `generateConstellationFable`, `saveConstellationCustomizations`, `zeitgeistEngineScheduled`, `zeitgeistEngineHttp`, `getThemeBasedConstellationRecommendations`, `getTravelAdvice`), verify and adjust their **allocated memory** and **timeout** settings.
+    * For functions interacting heavily with AI services or performing complex data operations (e.g., `generateConstellationRecommendations`, `publishStar`, `generateStarNames`, `saveConstellationCustomizations`, `zeitgeistEngineScheduled`, and especially the resource-intensive `requestAccountDeletion`), verify and adjust their **allocated memory** and **timeout** settings.
     * Most of these functions are defined in `index.js` using the Firebase Functions v2 SDK (e.g., `onRequest({ memory: "512MiB", ... })`). Ensure these settings are appropriate. For functions defined with v1 SDK or if you need to adjust post-deployment:
         * Select the function, click "Edit".
         * Under "Runtime, build, connections and security settings" (or similar):
@@ -864,6 +876,7 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
     * `generateHaikuAudio` ( in `FirestoreService`).
     * `generateStarNames`, `generateConstellationFable`, `getTravelAdvice` (in GeminiService).
     * `manageSubscription`, `consumeImageQuota`, `validateAndroidPurchase` (in FirestoreService for monetization).
+    * `requestAccountDeletion` (in FirestoreService for account management).
 * **Asset Verification:** Ensure all prompt templates (`.txt` files in `assets/`) and the `assets/default_profile.png` are correctly declared in `pubspec.yaml`.
 * **Google Sign-In Configuration:** The application uses a hybrid, platform-aware approach for Google Sign-In. For mobile (Android), it uses the standard `google_sign_in` plugin, which is initialized in `main.dart` with the `serverClientId`. For the web, it uses a direct implementation of the Google Identity Services (GSI) library to render the official, browser-native Google button. This is achieved through a set of conditional-export "barrel" files (`gsi_connector.dart`, `google_sign_in_button_connector.dart`) that isolate web-specific code (`package:web`, `dart:js_interop`) from the mobile build path, ensuring cross-platform compatibility without compromises.
 
@@ -893,10 +906,13 @@ A core tenet of this architecture is the use of a **synchronous Remote Procedure
 The application’s data persistence strategy aligns with Cloud Firestore's NoSQL nature, prioritizing query performance, data integrity, and scalability. Dart data models (`Haiku`, `UserProfile`, `PublishedStar`, `Constellation`) serve as type-safe contracts and are designed for Firestore's flexible schema and common access patterns. **Strategic denormalization** is key: relevant data (e.g., `authorNickname` in `Haiku` and `PublishedStar` documents; `starCount` on `Constellation` documents) is duplicated to minimize client-side joins and multiple reads, enhancing UI rendering performance. While requiring management of data consistency (e.g., the client batch-updates `authorNickname` across private `favorites`, while the `syncNicknameOnUpdate` Cloud Function trigger handles propagating the change to all public `published_stars` and `constellations`), the performance gains for read-heavy scenarios are significant. Robust serialization/deserialization logic (`toJson`, `fromJson`), including proper handling of Firestore `Timestamp`, ensures seamless data transfer. **Firestore indexing**, including manually defined composite indexes, is also critical for optimizing complex queries (e.g., finding constellations by multiple attributes and sorting), ensuring the application remains responsive as the Haikuverse grows by preventing slow, costly database scans.
 
 ### Hybrid State Management: Balancing Real-Time Sync, Local Caching, and UI Responsiveness
-Haikuvese App employs a pragmatic, multi-faceted hybrid state management strategy to optimize for distinct data characteristics and user experience needs. This combines **Cloud Firestore's real-time streams** for dynamic, multi-device data synchronization (e.g., favorite haikus via `_MyAppState` and `FirestoreService.getFavoritesStream`; owned constellations in `ManageTab`), **`SharedPreferences`** for efficient local caching of device-centric user preferences (theme via `ThemeProvider`, nickname via `NicknameProvider`) and UI-specific tracking state (`CurrentImageProvider` for image status on `StarsScreen`), and Flutter's **`provider` package** for orchestrating global state accessibility and dependency injection. Local `StatefulWidget` state (via `setState`) manages transient, UI-centric logic within individual components. This is exemplified in the `AudioToolkitModal`, which manages its own state for voice and rate selections to provide immediate UI feedback (e.g., updating a "Play" button to "Generate"), resolving potential race conditions and ensuring the component is instantly responsive without waiting for backend confirmation. Use of `mounted` checks and careful use of `context.read`/`watch` prevent common pitfalls with asynchronous operations. To ensure freshness of externally fetched media and avoid stale cached versions (e.g., in `just_audio` or image display widgets), **cache-busting** (appending unique query parameters to URLs) is employed, guaranteeing users interact with the latest content without complex manual cache invalidation. This hybrid model leverages the strengths of each technique for a responsive, resilient, and maintainable application.
+Haikuverse App employs a pragmatic, multi-faceted hybrid state management strategy to optimize for distinct data characteristics and user experience needs. This combines **Cloud Firestore's real-time streams** for dynamic, multi-device data synchronization (e.g., favorite haikus via `_AppShellState` and `FirestoreService.getFavoritesStream`), `SharedPreferences` for efficient local caching, and Flutter's `provider` package for orchestrating global state. This strategy is further refined by dedicated providers like `NavigationProvider`, which decouples global UI navigation from content-specific state to prevent unintended side effects and improve modularity. Local `StatefulWidget` state (via `setState`) manages transient, UI-centric logic within individual components. This is exemplified in the `AudioToolkitModal`, which manages its own state for voice and rate selections to provide immediate UI feedback (e.g., updating a "Play" button to "Generate"), resolving potential race conditions and ensuring the component is instantly responsive without waiting for backend confirmation. Use of `mounted` checks and careful use of `context.read`/`watch` prevent common pitfalls with asynchronous operations. To ensure freshness of externally fetched media and avoid stale cached versions (e.g., in `just_audio` or image display widgets), **cache-busting** (appending unique query parameters to URLs) is employed, guaranteeing users interact with the latest content without complex manual cache invalidation. This hybrid model leverages the strengths of each technique for a responsive, resilient, and maintainable application.
+
+### Decoupled Navigation State: Separation of Concerns in Put into Practice
+The application’s core UI architecture was refactored to enforce a strict **Separation of Concerns**, moving from a monolithic state object to a more modular and resilient system. Initially, a single `_MyAppState` object managed the app's startup, data listeners, main UI layout, and the navigation state (`currentIndex`), a tight coupling that created bugs where unrelated state changes could incorrectly reset the user's primary navigation tab. The solution was to decouple the navigation state from the data and UI shell state by introducing three distinct components: a new `AuthWrapper` "gatekeeper" widget whose sole responsibility is to handle the initial startup and routing logic; the `AppShell`, which became the dedicated container for the authenticated user experience (holding the `Scaffold`, `AppBar`, and screens); and the `NavigationProvider`, to which the `currentIndex` and its management logic were extracted. This decoupling makes the app far more robust, as the `AppShell` now listens directly to the `NavigationProvider` to determine which screen to display, ensuring that changes in other providers do not affect the main UI navigation. This architectural shift resolved the screen-flicker bugs and resulted in a cleaner, more maintainable codebase.
 
 ### Client-Side Edge Prompt Engineering for Optimized Latency and Backend Efficiency
-A key architectural decision to enhance user-perceived performance and optimize backend resource use is the strategic implementation of **client-side, or "edge," prompt engineering**. Instead of sending raw user input or minimal contextual data to the backend, Haikuverse intelligently constructs complete, context-rich prompts directly within the Flutter client before any network request. For haiku generation in `HomeScreen`, this involves loading the base template (`assets/prompt.txt`), integrating user input, and incorporating text from current favorites (from `_MyAppState`'s synced list) to provide originality context for Vertex AI Gemini. Similarly, for Imagen 3 image generation in `StarsScreen`, the client assembles prompts using `assets/imagen_prompt.txt`, the original user prompt, and haiku text. For AI-generated fables and travel advice in `ConstellationCustomizationScreen` and `ExploreTab` respectively, templates like `assets/fable_prompt.txt` or `assets/travel_advice_*.txt` are combined with dynamic data such as constellation names, star context, or user themes on the client. This "edge processing" strategy dramatically reduces perceived latency by minimizing server-side data retrieval and assembly. The backend Cloud Function or AI service receives a ready-to-use prompt, allowing it to focus on core AI model interaction, shortening round-trip times for a more fluid user experience. This also optimizes backend resource use, improving scalability and potentially lowering operational costs, aligning with modern edge computing trends for AI applications.
+A key architectural decision to enhance user-perceived performance and optimize backend resource use is the strategic implementation of **client-side, or "edge," prompt engineering**. Instead of sending raw user input or minimal contextual data to the backend, Haikuverse intelligently constructs complete, context-rich prompts directly within the Flutter client before any network request. For haiku generation in `HomeScreen`, this involves loading the base template (`assets/prompt.txt`), integrating user input, and incorporating text from current favorites (from `_AppShellState`'s synced list) to provide originality context for Vertex AI Gemini. Similarly, for Imagen 3 image generation in `StarsScreen`, the client assembles prompts using `assets/imagen_prompt.txt`, the original user prompt, and haiku text. For AI-generated fables and travel advice in `ConstellationCustomizationScreen` and `ExploreTab` respectively, templates like `assets/fable_prompt.txt` or `assets/travel_advice_*.txt` are combined with dynamic data such as constellation names, star context, or user themes on the client. This "edge processing" strategy dramatically reduces perceived latency by minimizing server-side data retrieval and assembly. The backend Cloud Function or AI service receives a ready-to-use prompt, allowing it to focus on core AI model interaction, shortening round-trip times for a more fluid user experience. This also optimizes backend resource use, improving scalability and potentially lowering operational costs, aligning with modern edge computing trends for AI applications.
 
 ### Client-Side Procedural Generation: Crafting Interactive Vector Art Constellation Graphs
 Beyond leveraging generative AI for content, Haikuverese App employs **client-side procedural generation (PG)** to create stylized **vector art** representations of abstract constellation graphs within the `HaikuverseNavigationScreen`. This innovative approach, distinct from the generative AI features, provides fine-grained aesthetic control and high-performance interactive visuals without relying on external graph rendering libraries or incurring additional API call costs. The core of this system is an algorithm (`_calculateStarLayout` in `_HaikuverseNavigationScreenState`) that automatically generates the visual structure of each constellation. This algorithm defines rules for distributing stars into rings—incorporating radius, angle, and jitter parameters for an organic appearance—and establishes connectivity logic, including minimum/maximum edges per star and prioritized radial and tangential linking. Crucially, it implements a **heuristic-based algorithm**, a series of practical "rules of thumb" designed to achieve an aesthetically pleasing and performant result efficiently, rather than striving for a computationally expensive, mathematically perfect planar graph. Examples of these heuristics include initial ring placement, prioritizing connections for core and orphaned stars, and visual rules for edge crossing avoidance and angle separation (e.g., aiming to keep angles above 20 degrees). The `_calculateStarLayout` method functions like an **implicit state machine**, progressing through stages: initial star placement, radial connections, tangential connections (respecting existing structural edges), and iterative dumbbell/orphan fixing to ensure connectivity, with the graph's state evolving at each stage. The `ConstellationViewPainter` then uses Flutter's `CustomPaint` API to render this procedurally generated structure as **vector art**. Stars are drawn as circles (`canvas.drawCircle()`) and connections as lines (`canvas.drawLine()`), both defined by mathematical equations. Text labels are also rendered as part of this vector output. This vector-based approach ensures that the constellation graph can be scaled to any size during user interaction (zooming) without loss of quality or pixelation, a key advantage for creating fluid and responsive interactive visualizations, showcasing a deliberate fusion of algorithmic design with artistic presentation.
@@ -908,7 +924,7 @@ To foster a rich, interconnected "Haikuverse," Haikuverse implements an innovati
 The Haikuverse knowledge graph is designed not just to exist, but to endure. It employs a multi-faceted resilience strategy that combines client-side **"self-pruning"** with a suite of backend maintenance and **"self-healing"** functions. When a user navigates the graph, the application's validation logic actively prunes dead links by checking for the existence and permissions of neighbors before displaying them. If a user owns a constellation with dead links, the client can write the pruned list back to Firestore. This is complemented by two types of backend processes. First, a weekly, scheduled `knowledgeGraphHealer` function automatically finds any constellations that have become "orphaned" (having zero neighbors) and re-weaves them into the Haikuverse by finding new, semantically relevant connections. Second, a pair of on-demand, admin-triggered scripts (`cleanupFableIndex` and `cleanupStarIndex`) can be invoked at any time to perform a **full audit of the Vector Search indices**, identifying and removing any "ghost" entries that no longer correspond to a valid Firestore document. This symbiotic relationship—where the client performs immediate, localized pruning and the backend provides both routine healing and on-demand integrity checks—creates a robust, resilient system that actively maintains its own health over time.
 
 ### Multi-Layered Security: Firebase Authentication, Google OAuth, and Granular Access Controls
-Haikuverse employs a defense-in-depth security strategy, integrating multiple layers of authentication and authorization to rigorously protect user data, secure backend services, and control access to Google Cloud Platform resources. The cornerstone of user-facing security is **Firebase Authentication**, which manages the user lifecycle and issues short-lived, cryptographically signed Firebase ID tokens. These ID tokens are mandatory for invoking all backend Google Cloud Functions; each function, upon receiving an HTTPS request, uses the **Firebase Admin SDK** (`admin.auth().verifyIdToken()`) to validate the token's authenticity, integrity, and expiration. If verification fails, the function immediately returns a `401 Unauthorized` response, preventing further execution. This is complemented by **Firebase App Check**, which provides a crucial layer of application attestation, verifying that requests originate from a genuine client using Play Integrity on Android and reCAPTCHA Enterprise on the web.
+Haikuverse employs a defense-in-depth security strategy, integrating multiple layers of authentication and authorization to rigorously protect user data, secure backend services, and control access to Google Cloud Platform resources. The cornerstone of user-facing security is **Firebase Authentication**, which manages the user lifecycle and issues short-lived, cryptographically signed Firebase ID tokens. These ID tokens are mandatory for invoking all backend Google Cloud Functions; each function, upon receiving an HTTPS request, uses the **Firebase Admin SDK** (`admin.auth().verifyIdToken()`) to validate the token's authenticity, integrity, and expiration. If verification fails, the function immediately returns a `401 Unauthorized` response, preventing further execution. This is complemented by **Firebase App Check**, which provides a crucial layer of application attestation, verifying that requests originate from a genuine client using Play Integrity on Android and reCAPTCHA Enterprise on the web. This security-first approach extends not only to accessing the application, but to the entire lifecycle of a user's data, including its permanent and secure deletion.
 
 For interactions with specific Google Cloud services from the backend, such as the Vertex AI Embedding API and Vertex AI Vector Search API (via `MatchServiceClient` and `IndexServiceClient`), a transition to service-centric **Google OAuth 2.0** access tokens occurs. Cloud Functions utilize the `google-auth-library` to obtain these OAuth tokens via their implicitly assigned, securely managed service account credentials, granting narrowly-scoped permissions for GCP API interaction without exposing long-lived keys.
 
@@ -916,9 +932,9 @@ Complementing this, granular access controls are enforced at the data storage le
 
 This defense-in-depth strategy extends to the identities of the backend services themselves. While Cloud Functions run with a default, high-privilege service account whose keys are automatically rotated by Google for broad security, a more nuanced approach is taken for specific, critical tasks. For generating long-lived, non-expiring media URLs, a dedicated, user-managed service account (`storage-url-signer`) is employed. This identity adheres strictly to the **Principle of Least Privilege**, possessing only the permissions required to manage Storage objects. Its permanent private key is stored and encrypted in **Google Secret Manager** and is only accessed by Cloud Functions at runtime. This architecture demonstrates a mature security posture, trading the convenience of default configurations for the robustness and predictability of a purpose-built, securely managed identity, ensuring critical user-facing assets remain permanently accessible without compromising security.
 
-A core principle is ensuring **atomicity and data integrity by default**. The backend rigorously employs atomic operations for any action that modifies multiple documents. Whether a user is publishing a star, following another user, validating a purchase, or consuming a unit of image quota, these operations are wrapped in **Cloud Firestore Transactions** or **Batch Writes**. This guarantees that all changes within a single logical action succeed or fail together, completely preventing the database from ever entering an inconsistent state.
+A core principle is ensuring **atomicity and data integrity by default**. The backend rigorously employs atomic operations for any action that modifies multiple documents. Whether a user is publishing a star, following another user, validating a purchase, consuming a unit of image quota, or requesting the deletion of their entire account, these operations are wrapped in **Cloud Firestore Transactions** or **Batch Writes**. This guarantees that all changes within a single logical action succeed or fail together, completely preventing the database from ever entering an inconsistent state.
 
-User privacy is also a foundational design constraint, implemented through **privacy-by-design via data segregation**. The architecture enforces a strict separation between private and public user data from the outset using two distinct top-level Firestore collections: `/users` and `/public_profiles`. The `/users` collection holds sensitive or private information and is governed by security rules that permit access only to the authenticated owner. The `/public_profiles` collection contains only the data a user explicitly agrees to share (nickname, avatar, achievements). This clear segregation provides users with transparent control over their information and simplifies the implementation of security rules, ensuring that private data is never accidentally exposed.
+User privacy is also a foundational design constraint, implemented through **privacy-by-design via data segregation**. The architecture enforces a strict separation between private and public user data from the outset using two distinct top-level Firestore collections: `/users` and `/public_profiles`. The `/users` collection holds sensitive or private information and is governed by security rules that permit access only to the authenticated owner. The `/public_profiles` collection contains only the data a user explicitly agrees to share (nickname, avatar, achievements). This clear segregation provides users with transparent control over their information and simplifies the implementation of security rules, ensuring that private data is never accidentally exposed. This clear segregation provides users with transparent control over their information, simplifies the implementation of security rules, and ultimately enables the "right to be forgotten" through the comprehensive account deletion feature.
 
 ### Resilient Asynchronous Operations and Comprehensive Error Handling
 To maintain a responsive UI and ensure application stability when dealing with operations of unpredictable duration—such as network requests, Firestore streams, or AI calls—Haikuverse consistently employs Dart's `async`/`await` pattern. This prevents UI freezes by keeping long-running tasks off the main execution thread. Beyond this, a **multi-faceted error handling strategy** is implemented. Proactive client-side input validation acts as an initial defense, while diligent `mounted` checks after `await` calls guard against errors from disposed widgets.
@@ -940,7 +956,7 @@ The application's user experience and social features are guided by a philosophy
 
 **Progressive Disclosure:** The app introduces its rich feature set gradually, preventing cognitive overload and fostering intuitive engagement. A new user starts with the simple, focused interface of the `HomeScreen`. As they engage further, they can explore the multi-faceted toolkits of the `ExploreTab` or the detailed, tabbed interface of the `StarDetailPopup`. This approach ensures that users can master core functionalities before encountering more advanced social or creative tools, making the journey feel natural and rewarding rather than overwhelming. An example of this is the `StarProgressTracker` on the `HomeScreen`, which only appears after a user has favorited their first creation. It progressively reveals the next steps—pairing audio and visuals—guiding new users through the full creative process without cluttering the initial interface, while serving as a handy reminder for experienced users.
 
-**Creator-Centric Moderation:** Unlike platforms with global, unmoderated feeds, all social interaction in the Haikuverse is contextual and controlled. The `StarDetailPopup` serves as a private salon for each creation. When a user submits a comment, it is first sanitized by a Gemini harm check and then sent to the star's owner for approval via the `NotificationsScreen`. This empowers creators with full control over the discourse surrounding their work. They can approve, reject, or even report abusive comments, which automatically blocks the user from their content and creates a moderation ticket. This architecture intentionally fosters a respectful and creative community by design, placing the power of curation in the hands of the artists themselves.
+**Creator-Centric Moderation:** Unlike platforms with global, unmoderated feeds, all social interaction in the Haikuverse is contextual and controlled. The `StarDetailPopup` serves as a private salon for each creation. When a user submits a comment, it is first sanitized by a Gemini harm check and then sent to the star's owner for approval via the `NotificationsScreen`. This empowers creators with full control over the discourse surrounding their work. They can approve, reject, or even report abusive comments, which automatically blocks the user from their content and creates a moderation ticket. This architecture intentionally fosters a respectful and creative community by design, placing the power of curation in the hands of the artists themselves. This philosophy of user empowerment culminates in the account deletion feature, which provides the ultimate tool for a user to control their own presence and permanently exit the space if they so choose.
 
 ### Designed for Humans: An Invitation to Creative Discovery
 The Haikuverse experience begins with a deliberate statement of quality and intent. The first thing a new user sees is not a static splash screen, but a living, breathing logo — a dynamic, procedurally generated spirograph animation that is both intricate and mesmerizing. This visual manifesto immediately signals that this is no ordinary haiku application and sets a standard for the high-fidelity, multi-sensory journey the user is about to embark on, promising an adventure where technical sophistication and creative expression are deeply intertwined from the very first moment. Haikuverse is engineered as a **dynamic partner in creative exploration**, placing the human user at the very heart of an ever-unfolding journey. This guiding philosophy —**Designed for Humans**— is not an afterthought but the foundational principle shaping every architectural nuance and feature, fostering intuitive interaction, profoundly augmenting human creative potential, and championing inclusive access. It's an endeavor to ignite the spark of curiosity and make the co-creation of unique techno-poetic art an accessible, deeply personal, and endlessly engaging experience.
@@ -955,7 +971,7 @@ Critically, the subscription gates access only to resource-intensive AI image ge
 ### Augmented Artistry: The Creator's Journey
 The augmentation of human creativity is not a passive bestowal of content but an active collaboration. Within the `ConstellationCustomizationScreen`, users become co-authors of their Haikuverse, working with **Gemini** (via `GeminiService`) to weave evocative fables and with **Imagen 3** (via `VertexAIService`) to conjure visual representations, transforming abstract collections of haikus into deeply personal, mythic territories. This act of giving story and image to their creations fosters a profound sense of ownership and connection. The addition of Google Cloud premium Chirp3 HD **Text-to-Speech**, experienced through the `AudioToolkitModal`, further enriches this, allowing the user's poetic voice to take literal form, adding another layer of sensory engagement and accessibility. Finally, this entire creative cycle is completed by empowering the user to share their finished work outside the Haikuverse through beautifully formatted *'haiku cards,'* turning a personal creation into an act of positive outreach.
 
-Every interaction is crafted to minimize friction and maximize creative momentum, nurturing **cognitive flow and intuitive engagement.** The straightforward `HomeScreen` prompt, the immediate yet unobtrusive feedback during asynchronous AI operations, the unambiguous `FavoriteButton`, the at-a-glance `StarProgressTracker` checklist, the tactile tap-to-navigate gestures within the `MiniConstellationGraphView`, and the intelligently guided publishing flow—all are designed to feel like natural extensions of the user's creative intent. The `StarDetailPopup`, with its synchronized audio-visual "full experience" playback, is a microcosm of this design: an immersive dive into a single creative moment, presented effortlessly. This commitment to a frictionless experience extends even to the application's entry points. Recognizing that user preference is paramount, significant engineering effort was invested to create a hybrid, platform-aware authentication system. This provides users with the seamless, one-tap convenience of the official Google Sign-In experience on the web, while using the standard mobile plugin for Android — a complex implementation undertaken solely to respect the user's choice and make their first interaction with the app as effortless as possible.
+Every interaction is crafted to minimize friction and maximize creative momentum, nurturing **cognitive flow and intuitive engagement.** The straightforward `HomeScreen` prompt, the immediate yet unobtrusive feedback during asynchronous AI operations, the unambiguous `FavoriteButton`, the at-a-glance `StarProgressTracker` checklist, the tactile tap-to-navigate gestures within the `MiniConstellationGraphView`, and the intelligently guided publishing flow—all are designed to feel like natural extensions of the user's creative intent. The `StarDetailPopup`, with its synchronized audio-visual "full experience" playback, is a microcosm of this design: an immersive dive into a single creative moment, presented effortlessly. This commitment to a frictionless experience extends even to the application's entry points. Recognizing that user preference is paramount, significant engineering effort was invested to create a hybrid, platform-aware authentication system. To ensure a frictionless and platform-native user experience, significant engineering effort was invested in a hybrid authentication system and a robust startup-gate (`AuthWrapper`). This provides the seamless convenience of the official Google Sign-In experience on the web while using the standard mobile plugin for Android, eliminating screen flicker and making the user's journey into and out of the app effortless.
 
 **Accessibility and inclusivity** are integral, not addons. `Semantics` widgets provide vital context for assistive technologies, `SelectableText` ensures content is portable, and the planned image-to-text features will further broaden access. Diverse TTS voices acknowledge and cater to varied preferences. Even **nickname validation**, while a security measure, contributes to a respectful and welcoming community space, inviting users to express their identity thoughtfully.
 
