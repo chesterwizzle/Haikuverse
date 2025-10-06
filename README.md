@@ -3,7 +3,7 @@
 ---
 ## 1. Introduction
 
-Haikuverse is a Flutter application designed as a rich, multi-sensory platform for creative expression. It empowers users to generate evocative haiku poems with **Google Gemini**, complement them with compelling imagery from Google Cloud's **Imagen 3**, and create dynamic, human-like audio narrations using Google Cloud's premium Chirp3 HD **Text-to-Speech** voices. These creations are shared within an interactive "Haikuverse," a community space where users can follow their favorite poets, earn achievements, and express their identity through deeply personalized avatars featuring unique, procedurally generated animated frames. To extend this creative ecosystem, a dedicated **Sharing Tab** allows users to export their work as beautifully formatted 'haiku cards,' fostering a "trading card" metagame and providing a simple way to bring the app's positive, human-centric energy to friends and family. This entire experience is grounded in a philosophy of non-toxic social interaction by design.
+Haikuverse is a Flutter application designed as a rich, multi-sensory platform for creative expression. It empowers users to generate evocative haiku poems with **Google Gemini**, complement them with compelling imagery from Google Cloud's **Imagen 3**, and create dynamic, human-like audio narrations using Google Cloud's premium Chirp3 HD **Text-to-Speech** voices. These creations are shared within an interactive "Haikuverse," a community space where users can follow their favorite poets, earn achievements, and express their identity through deeply personalized avatars featuring unique, procedurally generated animated frames. To extend this creative ecosystem, a dedicated Sharing Tab allows users to export their work as beautifully formatted **'haiku cards,'** providing a simple way to bring the app's positive energy to friends and family. This is complemented by a powerful in-app sharing feature that allows poets to send entire constellations to their followers, fostering viral discovery and community engagement based on a pure-merit system of curation. This entire experience is grounded in a philosophy of non-toxic social interaction by design.
 
 The application is built on a robust and scalable cloud architecture. Secure user management is handled by **Firebase Authentication**, reinforced by **Firebase App Check** to ensure requests originate from authentic app instances using Play Integrity on Android and reCAPTCHA Enterprise on the web. This is further strengthened by a full suite of account management tools, including secure password changes and a comprehensive, irreversible account deletion process. User profiles, creative works, and community data are managed through a sophisticated data model that strategically segregates private (`/users`) and public (`/public_profiles`) information within **Cloud Firestore**. All media assets are managed securely in **Firebase Storage**. A powerful serverless backend, architected with Google **Cloud Functions**, orchestrates all critical operations, from secure AI interactions and content safety checks to **Google Play Store** subscription and full data lifecycle management.
 
@@ -15,26 +15,27 @@ This document offers a comprehensive technical deep-dive into Haikuverse's archi
 
 * **Designed for Humans:** Haikuverse is architected as a cohesive creative experience designed to elevate human dignity, democratize access to powerful AI, and unleash creativity. The application serves as a dynamic partner in creative exploration, augmenting human artistry rather than replacing it. From the intuitive interface to the creator-centric controls, the entire experience is crafted to foster a rewarding community and maximize the inherent human delight in discovery and self-expression.
 
-* **Secure & Resilient Without Compromise:** The application is built on a scalable serverless backend using **Google Cloud Functions** and **Firestore**. Security is paramount, enforced through **Firebase App Check** attestation, a data model that strictly segregates private and public user data, and a full suite of account management tools. The system even includes self-healing maintenance functions for its `Knowledge Graph`, designed for long-term data integrity and resilience.
-
-* **Empowerment Through Full Data Sovereignty:** Haikuverse puts you in complete control of your digital identity. The application provides a full suite of account management tools, including secure in-app password changes and a comprehensive, irreversible account deletion process. This isn't just a simple database entry removal; it's a robust, cascading operation that permanently erases every trace of a user's presence—from authentication records and profile data to every published star, comment, and stored media file—ensuring true data permanence and the ultimate right to be forgotten.
-
-* **Accessible & Fair for All Creators:** The application is supported by a transparent and ethical subscription model managed through the **Google Play Store**. With distinct tiers designed for both casual poets and dedicated creators, plus flexible, non-expiring Quota Boosts, you can choose the level of access that fits your creative practice. An ethical spending cap of $250 per month ensures a responsible and human-centric experience for everyone.
-
 * **Co-Create Techno-Poetic Art:** Guide powerful AI partners (**Gemini**, **Imagen 3**, and **Text-to-Speech**) to transform your creative spark into multi-sensory experiences. Move beyond simple generation to augment your artistry, weaving evocative haiku, stunning visuals, and dynamic audio narrations into a unified whole.
 
 * **Forge Your Unique Poet's Identity:** This is your stage. Define your public persona by curating and publishing your finest multi-sensory experiences, then share them with the world as beautiful 'haiku cards' designed to foster connection and well-being. Personalize your avatar with a selection of animated frames, and showcase unique flair unlocked by your creative achievements. Cultivate a following, connect with poets who inspire you, and become a celebrated voice within the Haikuverse.
 
-* **Explore a Living Universe of Poetry:** Navigate a unique, procedurally generated vector-art cosmos where every star is a poem waiting to be discovered. This is not a static gallery; it's an emergent universe that responds to you. Watch as stars visually evolve with community appreciation, gaining vibrancy and unique coronas that reflect their shared impact.
-
 * **Cultivate Your Creative Sanctuary:** Haikuverse is a collection of creative sanctuaries. Its powerful anti-toxicity tools proactively screen public content using Google Gemini's powerful safety filters, empowering poets to cultivate respectful conversations and foster genuine connection by design.
 
-* **Democratized Moderation:** Community safety is a shared responsibility. Every user has private, non-retaliatory channels to report abuse or provide direct feedback, creating a secure audit trail for administrative review without fear of reprisal.
+* **Explore a Living Universe of Poetry:** Navigate a unique, procedurally generated vector-art cosmos where every star is a poem waiting to be discovered. This is not a static gallery; it's an emergent universe that responds to you. Watch as stars visually evolve with community appreciation, gaining vibrancy and unique coronas that reflect their shared impact.
 
 * **Uncover a Deeper Web of Meaning:** Journey beyond simple keyword searches with a semantic discovery engine powered by **Vertex AI Vector Search**. This system doesn't just find content; it reveals the invisible, thematic threads that connect poems and fables, building a dynamic knowledge graph that invites you to get lost in a universe of interconnected ideas.
 
 * **Tap into the Collective Consciousness:** Discover what inspires the community through the `Zeitgeist Engine`. This unique feature analyzes creative activity across the platform to reveal trending themes, offering a real-time glimpse into the evolving pulse of the Haikuverse and providing new avenues for your own creative exploration.
 
+* **Champion Community Discovery:** Your identity is defined not just by what you create, but by what you discover. Build your reputation as a trusted curator by sharing any constellation you find inspiring directly with your followers inside the app. This pure merit-based discovery system empowers you to become a celebrated tastemaker, helping your community find hidden gems while building your own following based on your unique perspective.
+
+* **Empowerment Through Full Data Sovereignty:** Haikuverse puts you in complete control of your digital identity. The application provides a full suite of account management tools, including secure in-app password changes and a comprehensive, irreversible account deletion process. This isn't just a simple database entry removal; it's a robust, cascading operation that permanently erases every trace of a user's presence—from authentication records and profile data to every published star, comment, and stored media file—ensuring true data permanence and the ultimate right to be forgotten.
+
+* **Accessible & Fair for All Creators:** The application is supported by a transparent and ethical subscription model managed through the **Google Play Store**. With distinct tiers designed for both casual poets and dedicated creators, plus flexible, non-expiring Quota Boosts, you can choose the level of access that fits your creative practice. An ethical spending cap of $250 per month ensures a responsible and human-centric experience for everyone.
+
+* **Democratized Moderation:** Community safety is a shared responsibility. Every user has private, non-retaliatory channels to report abuse or provide direct feedback, creating a secure audit trail for administrative review without fear of reprisal.
+
+* **Secure & Resilient Without Compromise:** The application is built on a scalable serverless backend using **Google Cloud Functions** and **Firestore**. Security is paramount, enforced through **Firebase App Check** attestation, a data model that strictly segregates private and public user data, and a full suite of account management tools. The system even includes self-healing maintenance functions for its `Knowledge Graph`, designed for long-term data integrity and resilience.
 
 ---
 ## 2. Functional Block Diagram of the Haikuverse App
@@ -60,7 +61,7 @@ flowchart LR
     direction TB
         Main["main - App Entry Point"]
         Initialization["Initialization & DI"]
-        GlobalProviders["Global State Providers"]
+        GlobalProviders["Global State Providers<br>(incl. NavigationIntentProvider)"]
         AuthWrapper["AuthWrapper<br>(Initial Route Logic)"]
   end
  subgraph HomeScreenDef["HomeScreen"]
@@ -132,6 +133,7 @@ flowchart LR
         LogbookTab["Logbook Tab (Comments)"]
         PoetTab["Poet Tab (Follow/Achievements)"]
         FableDetailPopup["FableDetailPopup"]
+        FollowerShareModal["FollowerShareModal"]
   end
  subgraph UIScreens["**UI Screens**"]
     direction TB
@@ -215,6 +217,7 @@ flowchart LR
         CloudFunctionsBackend
         CloudAPIs
   end
+
     HaikuverseNavigationScreen --> ProceduralGraph & VectorArtPainter
     StarDetailPopup --> ExperienceTab & LogbookTab & PoetTab
     HaikuverseNavigationScreen -- Shows Fable --> FableDetailPopup
@@ -275,6 +278,10 @@ flowchart LR
     DBTriggers -- Triggered by writes to --> FirestoreDatabaseBackend
     FirestoreServiceFlutter -- Triggers Functions --> PublishingFuncs & SocialFuncs & FeedbackFuncs & MonetizationFuncs & AccountMgmtFuncs
     AccountMgmtFuncs <--> FirebaseAuthBackend & FirestoreDatabaseBackend & FirebaseStorageBackend
+    FableDetailPopup -- Triggers Share --> FollowerShareModal
+    FollowerShareModal -- Sends Invites via --> FirestoreServiceFlutter
+    NotificationsScreen -- Sets Deep Link Intent --> GlobalProviders
+    GlobalProviders -- Navigates via Intent --> ConstellationsScreenDef
 
     style SettingsTab fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
     style CustomizationTabDef fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
@@ -347,6 +354,7 @@ This file serves as the primary entry point and central orchestrator of the Flut
     * `CurrentImageProvider`: Manages the locally persisted tracking state (via `SharedPreferences`) of the last viewed image URL and its unsaved/saved status for each haiku, primarily used by `StarsScreen`.
     * `AudioPlayerProvider`: Manages the shared `just_audio` player instance and its state for audio playback.
     * `QuotaProvider`: Provides a real-time, reactive state for the user's current subscription status, monthly image quota, and remaining boost images by listening to the user's private profile stream in Firestore.
+    * `NavigationIntentProvider`: A dedicated `ChangeNotifier` that serves as a global communication channel for internal "deep linking." It allows one part of the app (like `NotificationsScreen`) to set a navigation intent that another part (`ExploreTab`) can listen for and act upon, all without tightly coupling the components.
 
 * **Root `MyApp` Widget and Startup Flow:**
     * The top-level `MyApp` widget sets the application's theme and defines the named routes (`/auth`, `/home`, `/subscription`, etc.).
@@ -497,8 +505,7 @@ These components provide focused UIs for specific tasks or display contextual in
 *   **`subscription_screen.dart` & `quota_boost_screen.dart`:** A suite of screens dedicated to monetization. `SubscriptionScreen` serves as the primary paywall for new users, fetching and displaying products directly from the Google Play Store using the `in_app_purchase` package. `QuotaBoostScreen` provides a context-aware interface for subscribed users to purchase additional, non-expiring image quota or upgrade their subscription tier. Both screens orchestrate the purchase flow and trigger secure backend validation.
 *   **`account_management_screen.dart`:** A dedicated screen for critical, sensitive user actions. It provides access to legal and policy documents (EULA, Privacy, Subscription Policy), a secure in-app interface for changing passwords (which handles the mandatory re-authentication flow), and a clearly demarcated "Danger Zone" for initiating a full, irreversible account deletion.
 *   **`smart_scrubber_modal.dart`:** A specialized modal for power-users, launched from the `StarsScreen`. It provides a hybrid interface for quickly navigating large collections of favorite haikus, featuring a slider for rapid "scrubbing" and a text input dialog for jumping to a specific favorite by its number.
-
-
+* **`follower_share_modal.dart`:** A specialized modal launched from the `FableDetailPopup`. It fetches and displays a multi-select list of the user's followers, allowing a user to choose one or more recipients and trigger the `shareConstellation` Cloud Function to send them an in-app share notification.
 
 #### Reusable UI Widgets (`lib/widgets/`)
 
@@ -526,6 +533,7 @@ This directory houses custom, reusable Flutter widgets that promote UI consisten
 *   **Platform-Aware Web Helpers:** The application uses a robust conditional import/export pattern to isolate web-only JavaScript interop code from the native mobile build, preventing compilation errors. This is achieved through "connector" files that export either a real web implementation or an empty mobile placeholder (stub).
     *   **Google Sign-In Web Helpers (`gsi_*.dart` & `google_sign_in_button_*.dart`):** A suite of files that uses this pattern to provide the official, browser-rendered Google button on the web, while seamlessly falling back to the standard `google_sign_in` plugin on mobile. The web implementation (`google_sign_in_button_web.dart`) uses a global callback holder (`_GsiCallbackHolder`) as a deliberate design to robustly manage the JavaScript button's state across sign-out/sign-in cycles, preventing stale callback errors.
     *   **Web Page Reloader (`web_reloader_*.dart`):** This utility uses the same conditional import pattern to provide a platform-aware function (`reloadWebPage()`) that forces a full page reload on the web. This is used during the sign-out flow to clear any lingering state from external JavaScript libraries, ensuring a clean session for the next user.
+    * **`poet_info_card.dart`:** A consistent, reusable card widget that displays a poet's public profile information, including their customized avatar, nickname, and live follower count. It features a dynamic "Follow"/"Unfollow" button, enabling users to manage their social connections from various places within the app, such as the `FableDetailPopup`.
 
 #### Application Theming System
 
@@ -543,7 +551,7 @@ The application's data models serve as a crucial contract for structuring data a
 *   **`constellation.dart` (`Constellation`):** Represents a thematic collection of stars, forming a node in the knowledge graph. Stores content (`fableText`, `fableImageUrl`), metadata (`starCount`, owner/creator info), and graph connections (`semanticNeighborIds`). Stored in `/constellations/{constellationName}`.
 *   **`comment.dart` (`Comment`):** Represents a single comment on a `PublishedStar`, with status (`pending_approval`, `approved`, etc.). Stored in `/published_stars/{starId}/comments/{commentId}`.
 *   **`feedback_item.dart` & `feedback_category.dart`:** Defines the structure for the user feedback system (`FeedbackItem`, `FeedbackRevision`, `FeedbackCategory` enum), ensuring a private and auditable trail of submissions. Stored in `/feedback/{uid}/items/`.
-*   **`notification.dart`:** Represents a user notification, with a `NotificationType` enum to differentiate between events like new comments, followers, or achievements. Stored in `/users/{uid}/notifications/`.
+* **`notification.dart`:** Represents a user notification, with a `NotificationType` enum to differentiate between events like new comments, followers, achievements, or a `constellationShare`. Stored in `/users/{uid}/notifications/`.
 *   **`follower.dart` (`Follower`):** A consolidated, read-only model used to represent the detailed information of a single follower, as returned by the `getFollowersDetails` Cloud Function. Includes `uid`, `nickname`, `pictureUrl`, `followerCount`, and `isFollowingBack`.
 *   **`zeitgeist.dart`:** Represents the structure of the Zeitgeist document (`Zeitgeist`, `ZeitgeistTheme`, `ZeitgeistCandidate`), capturing the community's trending themes. Stored in `/app_meta/zeitgeist`.
 
@@ -579,6 +587,7 @@ This layer abstracts interactions with Firebase, Google Cloud services, and back
         *   `getFollowersDetails` (calls `getFollowersDetails` CF).
         *   `triggerGenerateHaikuAudio` (calls `generateHaikuAudio` CF).
         *   `triggerRequestAccountDeletion` (calls `requestAccountDeletion` CF).
+        *   `triggerShareConstellation` (calls `shareConstellation` CF).
     *   **Quota & Subscription Management:** `triggerConsumeImageQuota` / `triggerRefundImageQuota` (for atomic quota updates), `manageSubscription` (RPC-style endpoint for trials and upgrades), and `validateAndroidPurchase` / `validateAndroidOneTimePurchase` (for secure Google Play receipt validation).
     *   **Like Management:** `getStarLikeCountStream` (real-time like count), `hasUserLikedStar`, `likeStar`, `unlikeStar`.
     *   **Comment Management:**
@@ -669,6 +678,7 @@ The server-side logic is implemented as a suite of Google Cloud Functions (deplo
     *   `deleteStarComment` (HTTP, v2): Allows a comment's author or the star's owner to delete a comment and its associated notification.
     *   `moderateStarComment` (HTTP, v2): Allows a star owner to approve or reject a pending comment.
     *   `reportAbuse` (HTTP, v2): Allows a star owner to report a comment, which blocks the commenter, deletes the comment, and creates a moderation ticket.
+    *   `shareConstellation` (HTTP, v2): Receives a constellation ID and a list of recipient UIDs. Atomically creates a `constellationShare` notification document for each recipient using a batch write.
 
 *   **Real-time Data Aggregation & Synchronization (Firestore Triggers):**
     * `updateLikeCount` (Firestore Trigger, v2): Aggregates likes from the `user_likes` subcollection and updates the `likeCount` on both the public `/published_stars` and private `/favorites` documents. Awards `star_likes` achievements.
@@ -746,6 +756,10 @@ This section outlines the journey of data and user interactions through the Haik
         *   **Achievement Unlocking:** Achievements are awarded by backend triggers. For example, when `updateLikeCount` increments a star's `likeCount` to a milestone, it idempotently calls `awardAchievement`, which updates the creator's `public_profile` and creates an `achievement_unlocked` notification.
         *   **Comment Moderation:** Submitting a comment triggers the `submitStarComment` function, which runs a Gemini harm check. If safe, it creates a `pending_approval` comment and a `new_comment` notification. The star owner, viewing this in their `NotificationsScreen`, can then approve or reject (triggering `moderateStarComment`), or report the comment for abuse.
 
+*   **In-App Constellation Sharing & Deep Linking (Viral Discovery Loop):**
+    * This workflow begins when a user taps the "Share" icon in the `FableDetailPopup`. This action opens the `FollowerShareModal`, which fetches the user's followers list via the `getFollowersDetails` Cloud Function. The user selects one or more recipients and taps "Send," triggering the `shareConstellation` Cloud Function. This backend function atomically creates `constellationShare` notification documents for each recipient.
+    * The recipient sees the new notification in their `NotificationsScreen`. Tapping this share card sets an intent in the global `NavigationIntentProvider` and pops the screen. The parent `ConstellationsScreen` peeks at this intent to switch to the "Explore" tab, while the `ExploreTab` itself consumes the intent, reads the `constellationId`, fetches its data via `FirestoreService`, and programmatically switches its internal view to the "Launch" toolkit to display the shared content, completing the seamless deep link experience.
+
 *   **Account Deletion Workflow (User-Initiated Data Purge - `AccountManagementScreen`, Cloud Function):**
     * The user initiates deletion from the "Danger Zone" in the `AccountManagementScreen`. The client guides them through multiple confirmation dialogs. To comply with Firebase's security policies for sensitive operations, the flow requires the user to **re-authenticate** recently, using a platform-aware process that supports both password and Google Sign-In. Once fully confirmed and re-authenticated, the client calls the `requestAccountDeletion` Cloud Function. This secure backend function then executes a comprehensive, cascading purge of all user data across every service: it dismantles their social graph, anonymizes moderation records, deletes all Firestore documents and subcollections, removes all associated files from Cloud Storage, deletes their entries from the Vector Search indices, and finally, purges the user's record from Firebase Authentication itself. Upon success, the client signs the user out and navigates them back to the `/auth` screen, completing the data lifecycle.
 
@@ -796,14 +810,15 @@ The application has been extended beyond a personal creative tool to include a r
     *   **Unified Notifications:** A centralized notification screen alerts users to all community interactions, including new comments on their stars, new followers, and achievements they've unlocked.
     *   **Community Moderation:** Star owners can moderate comments on their creations (approve/reject) or report them for abuse, which automatically blocks the user and creates a moderation ticket.
     *   **Full Account Control:** Beyond community interaction, users have complete control over their account's lifecycle. This includes secure, in-app password changes and the option for a complete, irreversible account deletion, giving users the ultimate say over their presence in the Haikuverse.
+    *   **In-App Curation & Sharing:** Beyond creating, users can become trusted curators by sharing any discovered constellation with their followers. This feature fosters a merit-based viral discovery loop, allowing talented creators to gain exposure and skilled curators to build a following based on their unique taste.
 
 *   **Technical Architecture & Key Concepts:**
-    *   **Backend-Orchestrated Logic:** Critical actions like following a user or awarding an achievement are handled by dedicated **HTTP-triggered Cloud Functions**. This ensures data integrity, security, and atomicity, as multiple database operations are executed in a single, reliable transaction on the server.
+    *   **Backend-Orchestrated Logic:** Critical actions like sharing a constellation, following a user, or awarding an achievement are handled by dedicated **HTTP-triggered Cloud Functions**. This ensures data integrity, security, and atomicity, as multiple database operations are executed in a single, reliable transaction on the server.
     *   **Event-Driven Architecture & Idempotency:** Achievements are awarded using an event-driven model. **Firestore Triggers** (`onDocumentWritten`) monitor events like star publications and like counts. When a milestone is reached, these backend triggers automatically execute the **idempotent** helper function `awardAchievement`.
     *   **Denormalization for Performance:** To ensure a fast and responsive user experience, key data points are denormalized:
-        *   **Follower Count:** A `followerCount` is stored directly on a user's `public_profile` document and updated by Cloud Functions. 
-        *   **Data Synchronization:** Public-facing data (like `likeCount` on a published star) is automatically synced back to the user's private `favorites` document via Firestore triggers.
-        *   **Denormalized Notifications:** Notification documents store copies of relevant data (like nicknames) to avoid extra database lookups. Similarly, triggers like `syncNicknameOnUpdate` and `syncProfileImageOnUpdate` ensure that changes to a user's public profile are automatically fanned out to all of their published works and created constellations.
+        * **Follower Count:** A `followerCount` is stored directly on a user's `public_profile` document and updated by Cloud Functions. 
+        * **Data Synchronization:** Public-facing data (like `likeCount` on a published star) is automatically synced back to the user's private `favorites` document via Firestore triggers.
+        * **Denormalized Notifications:** Notification documents, including those for the `constellationShare` feature, store copies of relevant data (like sender nicknames) to avoid extra database lookups on load. Similarly, triggers like `syncNicknameOnUpdate` and `syncProfileImageOnUpdate` ensure that changes to a user's public profile are automatically fanned out to all of their published works and created constellations.
     *   **Secure Data Modeling:** A clear separation between private (`/users`) and public (`/public_profiles`) data is enforced. Firestore Security Rules prevent users from tampering with their own follower counts or achievements and ensure users can only manage their own "following" list. This robust separation is what enables complex, secure operations like the full, cascading account deletion process.
 
 ---
@@ -865,12 +880,13 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
 ```
 * **Critical: Adjust Cloud Function Memory & Timeout:**
     * After deployment, go to the **Google Cloud Console -> Cloud Functions**.
-    * For functions interacting heavily with AI services or performing complex data operations (e.g., `generateConstellationRecommendations`, `publishStar`, `generateStarNames`, `saveConstellationCustomizations`, `zeitgeistEngineScheduled`, and especially the resource-intensive `requestAccountDeletion`), verify and adjust their **allocated memory** and **timeout** settings.
+    * For functions interacting heavily with AI services or performing complex data operations (e.g., `generateConstellationRecommendations`, `publishStar`, `generateStarNames`, `saveConstellationCustomizations`, `zeitgeistEngineScheduled`, `shareConstellation`, and especially the resource-intensive `requestAccountDeletion`), verify and adjust their **allocated memory** and **timeout** settings.
     * Most of these functions are defined in `index.js` using the Firebase Functions v2 SDK (e.g., `onRequest({ memory: "512MiB", ... })`). Ensure these settings are appropriate. For functions defined with v1 SDK or if you need to adjust post-deployment:
         * Select the function, click "Edit".
         * Under "Runtime, build, connections and security settings" (or similar):
             * **Memory allocated:** Set to at least `512MB`. Some, like those handling multiple AI calls or large data, might need `1GB` or `2GB`. Monitor logs for out-of-memory errors.
             * **Timeout:** Default is 60 seconds. Increase if functions perform long-running operations (e.g., multiple sequential AI calls, large batch writes). Start with 120s or 180s and adjust based on execution logs.
+    
     * Save changes for each function. This is crucial for preventing out-of-memory errors and premature timeouts.
 
 **c. Flutter Application Configuration (Verification):**
@@ -878,7 +894,7 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
 * **Cloud Function URLs:** The URLs for all HTTP-triggered backend Cloud Functions are managed centrally in `lib/constants/app_constants.dart`. This configuration service approach eliminates hardcoded strings within the service layer (`FirestoreService.dart`, `GeminiService.dart`), making the application more maintainable and easier to configure for different environments. When deploying, verify that the `_cloudFunctionsBaseUrl` in this file matches the project's URL.
     * `haikuBotCloud` (in `HomeScreen` or its service for haiku generation).
     * `sanitizeProfileImage`, `sanitizeNickname` (in `PreferencesScreen` or its service).
-    * `generateConstellationRecommendations`, `publishStar`, `deletePublishedStar`, `saveConstellationCustomizations`, `getThemeBasedConstellationRecommendations`, `getFollowedConstellations` (typically in FirestoreService).
+    * `generateConstellationRecommendations`, `publishStar`, `deletePublishedStar`, `saveConstellationCustomizations`, `getThemeBasedConstellationRecommendations`, `getFollowedConstellations`, `shareConstellation` (typically in FirestoreService).
     * `generateHaikuAudio` ( in `FirestoreService`).
     * `generateStarNames`, `generateConstellationFable`, `getTravelAdvice` (in GeminiService).
     * `manageSubscription`, `consumeImageQuota`, `validateAndroidPurchase` (in FirestoreService for monetization).
@@ -916,6 +932,8 @@ Haikuverse App employs a pragmatic, multi-faceted hybrid state management strate
 
 ### Decoupled Navigation State: Separation of Concerns in Put into Practice
 The application’s core UI architecture was refactored to enforce a strict **Separation of Concerns**, moving from a monolithic state object to a more modular and resilient system. Initially, a single `_MyAppState` object managed the app's startup, data listeners, main UI layout, and the navigation state (`currentIndex`), a tight coupling that created bugs where unrelated state changes could incorrectly reset the user's primary navigation tab. The solution was to decouple the navigation state from the data and UI shell state by introducing three distinct components: a new `AuthWrapper` "gatekeeper" widget whose sole responsibility is to handle the initial startup and routing logic; the `AppShell`, which became the dedicated container for the authenticated user experience (holding the `Scaffold`, `AppBar`, and screens); and the `NavigationProvider`, to which the `currentIndex` and its management logic were extracted. This decoupling makes the app far more robust, as the `AppShell` now listens directly to the `NavigationProvider` to determine which screen to display, ensuring that changes in other providers do not affect the main UI navigation. This architectural shift resolved the screen-flicker bugs and resulted in a cleaner, more maintainable codebase.
+
+This principle of decoupled navigation was extended to handle in-app "deep linking" for features like constellation sharing. Instead of tightly coupling the `NotificationsScreen` to the `ExploreTab`, a dedicated `NavigationIntentProvider` was introduced to act as a global, asynchronous communication bus. This allows the source screen to broadcast a navigation intent without knowing anything about the destination, and the destination screen to listen for and consume that intent at the appropriate time in its lifecycle (`didChangeDependencies`). This "peek then consume" pattern resolves complex race conditions, preserves the state of unrelated UI components, and creates a scalable, maintainable architecture for routing users within the application.
 
 ### Client-Side Edge Prompt Engineering for Optimized Latency and Backend Efficiency
 A key architectural decision to enhance user-perceived performance and optimize backend resource use is the strategic implementation of **client-side, or "edge," prompt engineering**. Instead of sending raw user input or minimal contextual data to the backend, Haikuverse intelligently constructs complete, context-rich prompts directly within the Flutter client before any network request. For haiku generation in `HomeScreen`, this involves loading the base template (`assets/prompt.txt`), integrating user input, and incorporating text from current favorites (from `_AppShellState`'s synced list) to provide originality context for Vertex AI Gemini. Similarly, for Imagen 3 image generation in `StarsScreen`, the client assembles prompts using `assets/imagen_prompt.txt`, the original user prompt, and haiku text. For AI-generated fables and travel advice in `ConstellationCustomizationScreen` and `ExploreTab` respectively, templates like `assets/fable_prompt.txt` or `assets/travel_advice_*.txt` are combined with dynamic data such as constellation names, star context, or user themes on the client. This "edge processing" strategy dramatically reduces perceived latency by minimizing server-side data retrieval and assembly. The backend Cloud Function or AI service receives a ready-to-use prompt, allowing it to focus on core AI model interaction, shortening round-trip times for a more fluid user experience. This also optimizes backend resource use, improving scalability and potentially lowering operational costs, aligning with modern edge computing trends for AI applications.
@@ -958,11 +976,11 @@ Automated testing is not an ancillary activity in the Haikuverse project; it is 
 Key techniques such as **strategic mocking** to define behavior and verify interactions, realistic authentication simulation, **"golden" file** testing for validating custom painters (ConstellationViewPainter, ZeitgeistMap), and careful **test isolation** (e.g., in setUp/tearDown) ensure thorough validation and prevent test bleed-over. This disciplined testing regimen serves as a critical **defense against regressions**, manages technical debt proactively, and reflects a deep commitment to **engineering excellence and a high-quality, bug-free user experience.** Future enhancements include the implementation of integration tests for end-to-end user flow validation and dedicated testing for backend Cloud Function logic. Test execution is managed via standard `flutter test` and mock regeneration with `flutter pub run build_runner build --delete-conflicting-outputs`.
 
 ### Non-Toxic Social Interaction by Design
-The application's user experience and social features are guided by a philosophy of **non-toxic social interaction by design**. This is achieved through two primary strategies: progressive disclosure of complexity and creator-centric content moderation.
+The application's user experience and social features are guided by a philosophy of **non-toxic social interaction by design**. This is achieved through two primary strategies: progressive disclosure of complexity and creator-centric content moderation. 
 
 **Progressive Disclosure:** The app introduces its rich feature set gradually, preventing cognitive overload and fostering intuitive engagement. A new user starts with the simple, focused interface of the `HomeScreen`. As they engage further, they can explore the multi-faceted toolkits of the `ExploreTab` or the detailed, tabbed interface of the `StarDetailPopup`. This approach ensures that users can master core functionalities before encountering more advanced social or creative tools, making the journey feel natural and rewarding rather than overwhelming. An example of this is the `StarProgressTracker` on the `HomeScreen`, which only appears after a user has favorited their first creation. It progressively reveals the next steps—pairing audio and visuals—guiding new users through the full creative process without cluttering the initial interface, while serving as a handy reminder for experienced users.
 
-**Creator-Centric Moderation:** Unlike platforms with global, unmoderated feeds, all social interaction in the Haikuverse is contextual and controlled. The `StarDetailPopup` serves as a private salon for each creation. When a user submits a comment, it is first sanitized by a Gemini harm check and then sent to the star's owner for approval via the `NotificationsScreen`. This empowers creators with full control over the discourse surrounding their work. They can approve, reject, or even report abusive comments, which automatically blocks the user from their content and creates a moderation ticket. This architecture intentionally fosters a respectful and creative community by design, placing the power of curation in the hands of the artists themselves. This philosophy of user empowerment culminates in the account deletion feature, which provides the ultimate tool for a user to control their own presence and permanently exit the space if they so choose.
+**Creator-Centric Moderation:** Unlike platforms with global, unmoderated feeds, all social interaction in the Haikuverse is contextual and controlled. The `StarDetailPopup` serves as a private salon for each creation. When a user submits a comment, it is first sanitized by a Gemini harm check and then sent to the star's owner for approval via the `NotificationsScreen`. This empowers creators with full control over the discourse surrounding their work. They can approve, reject, or even report abusive comments, which automatically blocks the user from their content and creates a moderation ticket. This architecture intentionally fosters a respectful and creative community by design, placing the power of curation in the hands of the artists themselves. This philosophy of user empowerment culminates in the account deletion feature, which provides the ultimate tool for a user to control their own presence and permanently exit the space if they so choose. Furthermore, the in-app sharing feature extends this principle by allowing any user to act as a curator, championing the work of others and fostering a community where discovery and mutual appreciation are celebrated.
 
 ### Designed for Humans: An Invitation to Creative Discovery
 The Haikuverse experience begins with a deliberate statement of quality and intent. The first thing a new user sees is not a static splash screen, but a living, breathing logo — a dynamic, procedurally generated spirograph animation that is both intricate and mesmerizing. This visual manifesto immediately signals that this is no ordinary haiku application and sets a standard for the high-fidelity, multi-sensory journey the user is about to embark on, promising an adventure where technical sophistication and creative expression are deeply intertwined from the very first moment. Haikuverse is engineered as a **dynamic partner in creative exploration**, placing the human user at the very heart of an ever-unfolding journey. This guiding philosophy —**Designed for Humans**— is not an afterthought but the foundational principle shaping every architectural nuance and feature, fostering intuitive interaction, profoundly augmenting human creative potential, and championing inclusive access. It's an endeavor to ignite the spark of curiosity and make the co-creation of unique techno-poetic art an accessible, deeply personal, and endlessly engaging experience.
@@ -1017,9 +1035,9 @@ Publishing to the Google Play Store introduced a separate set of challenges inhe
 ### Navigating Ecosystem Upgrades and Technical Debt
 The health of a cross-platform application is dependent on staying current with its underlying ecosystems. As Flutter, Android, and their respective dependencies evolve, deprecation warnings are not errors but essential signposts for proactive maintenance. A disciplined strategy for managing these upgrades is critical to prevent the accumulation of technical debt and ensure long-term stability.
 
-A practical example of this was the required upgrade of the project's Kotlin Gradle Plugin. This involved identifying the correct configuration file (android/settings.gradle.kts) and updating the version to meet new requirements from the Flutter toolchain. While the code compiled successfully, this seemingly isolated Android configuration change produced an immediate, non-obvious side effect: the failure of the entire suite of golden file tests.
+A practical example of this was the required upgrade of the project's **Kotlin Gradle Plugin**. This involved identifying the correct configuration file (`android/settings.gradle.kts`) and updating the version to meet new requirements from the Flutter toolchain. While the code compiled successfully, this seemingly isolated Android configuration change produced an immediate, non-obvious side effect: the failure of the entire suite of golden file tests.
 
-The golden test failures were not due to a logic bug but to minuscule, sub-pixel changes in the rendering engine's anti-aliasing—a direct result of the toolchain update. The resolution was not to 'fix' the application code, but to regenerate the baseline golden images using flutter test --update-goldens and validate the visual changes in source control. This two-step process—addressing the primary deprecation and then resolving its downstream impact—exemplifies the project's approach to maintenance: diagnose thoroughly, fix deliberately, and always validate the full impact of any change.
+The golden test failures were not due to a logic bug but to minuscule, sub-pixel changes in the rendering engine's anti-aliasing—a direct result of the toolchain update. The resolution was not to 'fix' the application code, but to regenerate the baseline golden images using `flutter test --update-goldens` and validate the visual changes in source control. This two-step process—addressing the primary deprecation and then resolving its downstream impact—exemplifies the project's approach to maintenance: diagnose thoroughly, fix deliberately, and always validate the full impact of any change.
 
 ---
 ## License
