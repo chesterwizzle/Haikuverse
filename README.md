@@ -1068,7 +1068,7 @@ Ensuring the application's security integrity with **Firebase App Check** requir
     * **Linking the Cloud Project:** The app's `haiku-bot-cloud` project was linked to the Play Integrity API.
     * **Creating a Test Response:** A test was created for the internal tester email list, instructing Google's servers to override failing integrity verdicts from emulators and respond with `MEETS_DEVICE_INTEGRITY`. This server-side rule finally allowed the emulator to pass App Check, resolving the final blocker for local development.
     
-A stable local Android emulator is a critical prerequisite for supporting the Closed Alpha, enabling rapid debugging of user-reported issues without the significant overhead of deploying frequent builds to the Play Store.
+* A stable local Android emulator is a critical prerequisite for supporting the Closed Alpha, enabling rapid debugging of user-reported issues without the significant overhead of deploying frequent builds to the Play Store.
 
 ---
 ## License
