@@ -458,8 +458,8 @@ These are the primary top-level screens accessible via the bottom navigation bar
     * **Key UI:** A `Scaffold` with a `TabBar` for "Followers," "Following," and "Find Friends." Each tab displays a list of poets using a consistent, reusable card widget.
     * **Logic:**
         * **Followers Tab:** Displays users following the poet and allows following them back.
-        * **Following Tab:** Lists poets the user is following, featuring an optimistic "undo" feature for unfollow actions that preserves the UI state until navigation.
-        * **Find Friends Tab:** Provides a privacy-first search bar to find and follow other poets by their public nickname.
+        * **Following Tab:** Lists poets the user is following. Unfollow actions are optimistically applied, immediately removing the poet from the list for a highly responsive feel. The action can fail and roll back, but on success, the change is instant.
+        * **Find Friends Tab:** Provides a privacy-first search bar to find and follow other poets. All follow/unfollow actions use an optimistic UI update, instantly changing the button's state and the follower count while the network request is processed in the background.
 
 *   **`notifications_screen.dart` - Centralized User Notification Hub:**
     *   **Purpose:** Provides a centralized, real-time feed of all user-specific notifications.
@@ -751,7 +751,6 @@ This section outlines the journey of data and user interactions through the Haik
     * From the `AudioToolkitModal`, the `onGenerateAudioRequested` callback invokes `_triggerAudioGeneration` in `_AppShellState`. This method calls `firestoreService.triggerGenerateHaikuAudio`, abstracting the direct network call. The service sends an authenticated request to the `generateHaikuAudio` Cloud Function. The backend calls Google Cloud Text-to-Speech, uploads the MP3 to Storage, generates a secure signed URL, and atomically updates Firestore. The signed URL is returned all the way back to the client for direct, efficient streaming playback.
 
 *   **Public Audio Playback & Self-Healing (`StarDetailPopup`, Cloud Function):**
-
     * When a user plays a public star's audio in the `StarDetailPopup`, the client attempts to play the `audioUrl` from the `/published_stars` document. If the underlying signed URL has expired, the `AudioPlayerProvider` throws a specific 403 Forbidden exception. The `StarDetailPopup` catches this exception, recognizes it as an expired URL, and triggers an automated healing process. It calls the `refreshPublicAudioUrl` Cloud Function, which generates a new, permanent signed URL for the existing audio file and updates the public Firestore document. The new URL is returned to the client, which seamlessly retries the playback, successfully playing the audio for the user and permanently fixing the link for all future listeners.
 
 *   **User Profile & Customization Update (`SettingsTab`, `CustomizationTab`, `Cloud Functions`):**
@@ -774,9 +773,9 @@ This section outlines the journey of data and user interactions through the Haik
 
 *   **Poet Network Social Management (`PoetNetworkScreen`):**
     * A user navigates from the `SettingsTab` to the `PoetNetworkScreen`, which houses three tabs for social management.
-        * **Followers Tab:** The client calls the `getFollowersDetails` Cloud Function. The UI displays the list, and the "Follow Back" button calls `followUser`, triggering a full UI refresh to show the updated state.
-        * **Following Tab:** The client calls the `getFollowingDetails` Cloud Function. An "Unfollow" action calls `unfollowUser`, but the UI updates its local state optimistically (changing the button and hiding the date) without removing the tile, allowing for an "undo" action until the user navigates away.
-        * **Find Friends Tab:** The client calls the `searchPoetsByNickname` Cloud Function with the user's query. The UI displays the results, and the follow/unfollow buttons call the appropriate backend functions, optimistically updating the button state and follower count on the specific card in real-time.
+        * **Followers Tab:** The client calls the `getFollowersDetails` Cloud Function on initial load. The "Follow Back" button triggers a local, optimistic UI update that instantly changes the button's state while the `followUser` or `unfollowUser` function is called in the background. The list is not re-fetched, ensuring a fast, responsive experience.
+        * **Following Tab:** The client calls the `getFollowingDetails` Cloud Function on initial load. An "Unfollow" action optimistically removes the user's card from the list immediately while the `unfollowUser` function is called in the background. If the backend call fails, the card is seamlessly re-inserted into the list.
+        * **Find Friends Tab:** The client calls the `searchPoetsByNickname` Cloud Function. The follow/unfollow buttons trigger an optimistic update on the specific poet card, instantly changing the button state and follower count. A temporary "pending" state prevents multiple rapid taps, and the UI will roll back to its original state if the backend call fails.
 
 *   **In-App Constellation Sharing & Deep Linking (Viral Discovery Loop):**
     * This workflow begins when a user taps the "Share" icon in the `FableDetailPopup`. This action opens the `FollowerShareModal`, which fetches the user's followers list via the `getFollowersDetails` Cloud Function. The user selects one or more recipients and taps "Send," triggering the `shareConstellation` Cloud Function. This backend function atomically creates `constellationShare` notification documents for each recipient.
@@ -826,7 +825,7 @@ The Haikuverse application employs a comprehensive security architecture built u
 The application has been extended beyond a personal creative tool to include a rich set of community and social features, collectively known as the "Haikuverse." This system is built on a secure and scalable serverless backend, enabling users to interact, follow creators, and earn recognition for their contributions.
 
 *   **Feature Overview:**
-    * **Follow System & Poet Network:** Users can follow poets and manage their social connections through the **Poet Network** hub. This tabbed interface allows users to view their followers, see who they are following, and find new poets via a privacy-first nickname search. The UI dynamically shows follow/unfollow status and follower counts, with optimistic updates for a responsive user experience.
+    * **Follow System & Poet Network:** Users can follow poets and manage their social connections through the **Poet Network** hub. This tabbed interface allows users to view their followers, see who they are following, and find new poets via a privacy-first nickname search. The entire experience is built for responsiveness, using optimistic UI updates that provide instant visual feedback for all follow/unfollow actions while network requests are handled securely in the background.
     *   **Automated Achievements:** The system automatically recognizes user contributions and awards achievements for milestones like publishing stars, creating constellations, or receiving likes.
     *   **Avatar Customization:** Users can personalize their public profile with animated frames and "flair" (icons) that represent their unlocked achievements.
     *   **Unified Notifications:** A centralized notification screen alerts users to all community interactions, including new comments on their stars, new followers, and achievements they've unlocked.
