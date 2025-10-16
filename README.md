@@ -698,10 +698,12 @@ The server-side logic is implemented as a suite of Google Cloud Functions (deplo
     * `syncProfileImageOnUpdate` (Firestore Trigger, v2): Triggers when a user's `/public_profiles/{userId}` document is updated. It specifically checks if the `pictureUrl` has changed. If it has, the function performs a batch update to fan out the new URL to all `constellation` documents where that user is listed as the `creatorUid` or `ownerUid`, ensuring denormalized profile images remain consistent and preventing broken image links.
     * `syncNicknameOnUpdate` (Firestore Trigger, v2): Triggers when a user's `/public_profiles/{userId}` document is updated. It specifically checks if the `nickname` field has changed. If it has, the function performs a batch update to fan out the new nickname to all `published_stars` where that user is the publisher (updating `authorNickname`) and all `constellation` documents where the user is the `creatorUid` or `ownerUid` (updating `creatorNickname` and `ownerNickname`). This ensures denormalized author names remain consistent throughout the application.
 
-*   **Zeitgeist & Knowledge Graph Maintenance:**
+*   **Zeitgeist Engine**
     *   `_zeitgeistEngineLogic` (Internal Logic): A shared function implementing the "Hot + Persistent" algorithm to analyze activity and determine the top 5 trending community themes.
     *   `zeitgeistEngineScheduled` (Scheduler Trigger, v2): Runs the `_zeitgeistEngineLogic` on a daily schedule.
     *   `zeitgeistEngineHttp` (HTTP, v2): An authenticated endpoint for manual, on-demand execution of the `_zeitgeistEngineLogic`.
+
+*   **Knowledge Graph Maintenance:**
     *   `knowledgeGraphHealer` (Scheduler Trigger, v2): A weekly self-healing job that finds "orphaned" constellations (zero neighbors) and uses Vector Search to find and assign new semantic neighbors.
     *   `cleanupFableIndex` / `cleanupStarIndex` (HTTP, v2): On-demand, admin-triggered scripts to remove any "orphan" entries from the Vector Search indices that no longer correspond to a valid Firestore document.
 
@@ -714,6 +716,7 @@ The server-side logic is implemented as a suite of Google Cloud Functions (deplo
 
 *   **Account & Data Lifecycle Management:**
     * `requestAccountDeletion` (HTTP, v2): A secure, authenticated endpoint that orchestrates the complete and irreversible deletion of a user's account. This function performs a comprehensive, cascading purge of all user-associated data, including: deleting all Firestore documents (root profiles, all subcollections like favorites and notifications), removing all user-published stars and their corresponding Vector Search index entries, performing a collection group query to delete all comments authored by the user, recursively deleting all user-owned folders and files from Cloud Storage, and finally, purging the user's record from Firebase Authentication itself.
+    * `deleteUnsavedFableImage` (HTTP, v2): A secure, authenticated endpoint that handles the cleanup of temporary, unsaved fable images to prevent orphaned files in Storage. This is a critical component of the app's data integrity and storage management strategy.
 
 *   **Secure Media URL Generation (Internal Logic):** 
     *   Uses a dedicated, user-managed service account (`storage-url-signer`) with a permanent, non-rotating private key to generate long-lived, secure signed URLs for backend-created media assets like audio files. The private key is securely fetched on-demand from **Google Secret Manager** by a reusable helper function (`getStorageSignerApp`), adhering to the principle of least privilege and ensuring URLs do not expire unexpectedly due to key rotation.
@@ -797,8 +800,7 @@ The Haikuverse application employs a comprehensive security architecture built u
     *   **Cloud Firestore Security Rules:**
         *   Private user data (`/users/{uid}` and its subcollections like `/favorites`, `/following`, `/followers`): Read/write access to all private data, including sensitive subscription and quota information, is strictly limited to the authenticated owner.
         *   Public user data (`/public_profiles/{uid}`): Publicly readable, but writable only by the owning user or trusted backend functions (for fields like `followerCount` and `achievements`).
-        *   `/constellations`: Modification of core creative content (`fableText`, `fableImageUrl`) is restricted to the `ownerUid`. Public read access is granted for discoverable constellations.
-        *   `/published_stars`: Write and delete operations are managed by secure Cloud Functions that verify ownership. Public read is allowed.
+        *   Subscription data (`/published_stars`, `/constellations`, and their subcollections): Read access is now strictly gated by a user's subscription status. Rules use a `get()` call to check the `subscriptionActive` flag in the user's `private /users/{uid}` document, ensuring only paying subscribers can view or interact with core content. Write and delete operations for these top-level collections are correctly managed by secure Cloud Functions.
         *   Like subcollections (`/user_likes/{userId}`): Users can only write/delete their own like document.
         *   Comment Moderation: Rules ensure users can only read `approved` comments. Writing is handled by the `submitStarComment` function, editing is restricted to the author while `pending_approval`, and deleting is restricted to the author or the star's owner.
         *   `/feedback/{userId}`: A user can only access their own feedback document and its subcollections.
@@ -817,7 +819,7 @@ The Haikuverse application employs a comprehensive security architecture built u
     *   Client-side calls to the Firebase Vertex AI SDK (e.g., `VertexAIService` for Imagen) rely on the authenticated Firebase user context for secure access.
 
 *   **Clarification on Cloud Function Invocation:**
-    *   The Cloud Run setting "Allow unauthenticated invocations" is necessary for client-triggered HTTPS functions to work correctly with Firebase's ID token-based authentication. Security is not bypassed, as every function rigorously verifies the Firebase ID token internally before processing any request.
+    *   The Cloud Run setting "Allow unauthenticated invocations" is necessary for client-triggered HTTPS functions to work correctly with Firebase's ID token-based authentication. Security is not bypassed, as every function rigorously verifies the Firebase ID token internally before processing any request. This is configured for consistency across all relevant functions directly in `index.js` using the `invoker: 'public'` option.
 
 ---
 ## 5. Community & Social Features
