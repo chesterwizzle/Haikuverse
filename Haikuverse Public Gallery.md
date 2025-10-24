@@ -460,3 +460,8 @@ The site uses the Next.js `<Image>` component for all content, with `remotePatte
 ### 5.5 Design Principles (Maintainability & User Experience)
 
 The styling architecture is built on **CSS Modules** to guarantee stability. Each component or page is paired with its own `*.module.css` file, generating unique class names that make it impossible for styles to leak and break other components. All database query logic is consolidated into a dedicated **service layer** (`/lib/firebaseService.ts`), allowing UI components to remain clean and making database logic easy to maintain. This design allows the Public Gallery to serve its dual role: for the public, it's a fast, read-only "showroom" designed for SEO and discovery. For authenticated members, it transforms into a personalized web portal, with the **Dashboard** providing a familiar hub and quick access to their community and creator tools.
+
+---
+## License
+
+Copyright © 2025 Fancyland, LLC
