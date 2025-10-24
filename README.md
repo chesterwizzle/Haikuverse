@@ -40,7 +40,7 @@ A comprehensive deep-dive into the main **Flutter application**. This document d
 
 ### 2. The Haikuverse Public Gallery (Next.js)
 
-* **[View Full Technical Documentation: Haikuverse Public Gallery.md](./Haikuverse Public Gallery.md)**
+* **[View Full Technical Documentation: Haikuverse Public Gallery.md](./Haikuverse%20Public%20Gallery.md)**
 
 The official documentation for the **public-facing Next.js web portal**. This file explains the hybrid rendering model (SSG/SSR) used for SEO, the server-side architecture (Cloud Run, Admin SDK, Secret Manager), and the secure authentication flow for the member dashboard.
 
