@@ -5,7 +5,7 @@ A rich, multi-sensory platform for creative expression, designed for humans.
 **Status:** 🚀 **Closed Alpha Now Live!**
 
 * The Haikuverse Closed Alpha test for the Android app began on **October 17, 2025**. Haikuverse requires a valid subscription from the Google Play Store. 
-* The Haikuverse Public Gallery is a light-weight web app that went live on Firebase hosting as of **22 October 22, 2025.** Only subscribers have access to the personalized dashboard.
+* The Haikuverse Public Gallery went live on Firebase hosting as of **October 22, 2025.** Only subscribers have access to the personalized dashboard.
 
 To join the Closed Alpha, please contact: **chesterwizzle@fancyland.net**
 
