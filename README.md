@@ -14,7 +14,7 @@ To join the Closed Alpha, please contact: **chesterwizzle@fancyland.net**
 | Resource | URL |
 | :--- | :--- |
 | **Get the App (Android)** | [https://play.google.com/store/apps/details?id=net.fancyland.haikuverse](https://play.google.com/store/apps/details?id=net.fancyland.haikuverse&pcampaignid=web_share) |
-| **Public Web Compendium** | [https://haikuverse-gallery.web.app/](https://haikuverse-gallery.web.app/) |
+| **Haikuverse Public Gallery** | [https://haikuverse-gallery.web.app/](https://haikuverse-gallery.web.app/) |
 | **Official Company Site** | [https://www.fancyland.net/](https://www.fancyland.net/) |
 | **Haikuverse Support** | [support@fancyland.net](mailto:support@fancyland.net) |
 
