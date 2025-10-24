@@ -1,4 +1,4 @@
-# Haikuverse 🦖
+# Haikuverse
 
 A rich, multi-sensory platform for creative expression, designed for humans.
 
