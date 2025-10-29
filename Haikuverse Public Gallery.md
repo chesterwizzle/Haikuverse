@@ -24,13 +24,12 @@ This mission-critical app attracts new users organically and offers a convenient
 * **Personalized Member Dashboard:** Logged-in users access a dashboard that calls serverless API routes to display their Haikuverse **nickname** and real-time lists of poets they **follow** and who **follow them**.
 * **Gated Creator Access:** Provides a convenient link to the **Haikuverse Web Creator** for authenticated users.
 * **Robust & Secure Backend:**
-    * Employs a server-only **Firebase Admin SDK**, which is initialized as a **uniquely named app** (`haikuverse-gallery-admin`) to prevent conflicts within the Next.js server environment.
+    * Employs a server-only **Firebase Admin SDK** initialized using a **singleton pattern** (`src/lib/firebaseAdmin.ts`) to prevent redundant initializations and improve server performance.
     * All server-side credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are securely injected into the **Google Cloud Run** environment at deploy time using **Google Secret Manager**, configured via `firebase.json`.
     * All API routes (`/api/*`) are refactored to import and use the single, centralized `auth` and `db` instances, ensuring consistent, authenticated access to Firebase services.
 * **Optimized for Production:**
     * The deployed Cloud Run service is configured with **1GiB of memory** in `firebase.json` to handle Next.js server-side rendering loads without crashing.
     * Uses the Next.js `<Image>` component with correctly configured `remotePatterns` (for `storage.googleapis.com` and `firebasestorage.googleapis.com`) and `sizes` props (e.g., `sizes="16rem"` for avatars) to ensure high-resolution, optimized images are served.
-    * Codebase is updated to be compatible with **Next.js 15**'s asynchronous `params` handling, using `await params` in `async` components and direct prop access in `React.use` components.
 
 ---
 ## 2. Functional Block Diagram
@@ -70,7 +69,7 @@ flowchart LR
     
     subgraph CloudRun["Google Cloud Run<br>(Backend)<br>firebase-frameworks<br>-haikuverse-gallery"]
         direction TB
-        FirebaseAdminModule["**src/lib/firebaseAdmin.ts**<br>(Initialized Named App:<br>'haikuverse-gallery-admin')"]
+        FirebaseAdminModule["**src/lib/firebaseAdmin.ts**<br>(Singleton Pattern for<br>Admin SDK)"]
         
         subgraph ServerBuild ["Build Process"]
             NextServerBuild["Next.js Build"]
@@ -199,7 +198,6 @@ The Haikuverse Public Gallery is built on a modern, SEO-first technology stack, 
 | **Database**         | Cloud Firestore                                  | Storing all core data                         |
 | **Server Secrets**   | **Google Secret Manager**                        | Securely injects credentials into Cloud Run   |
 | **API Layer**        | Next.js API Routes                               | Secure endpoints for client data fetching     |
-| **Proxy Functions**  | Google Cloud Functions (v1)                      | Proxied by API Routes for complex tasks       |
 | **Hosting**          | Firebase Hosting                                 | Serves static assets, routes backend requests |
 
 The following sections provide a detailed breakdown of the application's core components.
@@ -247,18 +245,10 @@ The gallery's styling is implemented using **CSS Modules**, a system that scopes
 
 This layer manages the connection to backend services and enforces security, running entirely within the **Google Cloud Run** environment on the server.
 
-* **Centralized Admin SDK (`src/lib/firebaseAdmin.ts`):** This is the core of the backend. It initializes the **Firebase Admin SDK** as a **uniquely named app** (`haikuverse-gallery-admin`) to prevent initialization conflicts within the Next.js server environment. It exports the initialized `db` (Firestore) and `auth` (Auth) instances for use across the server.
+* **Centralized Admin SDK (`src/lib/firebaseAdmin.ts`):** This is the core of the backend. It initializes the **Firebase Admin SDK** using a **singleton pattern** to ensure only one instance of the app exists on the server. This prevents redundant initializations, improves performance, and exports the shared `db` (Firestore) and `auth` (Auth) instances for use across the entire server.
 * **Secure Credentials:** In production, server-side credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are **injected securely from Google Secret Manager** into the Cloud Run environment at deploy time. This is configured in `firebase.json` using the `secretEnvironmentVariables` block.
 * **API Routes (`src/app/api/`):** All API routes have been refactored to **import the centralized `db` and `auth` instances** from `firebaseAdmin.ts`. This ensures they all use the single, correctly authenticated Admin SDK instance.
 * **Data Fetching Service (`src/lib/firebaseService.ts`):** Centralizes reusable data-fetching functions (e.g., `getAllPoets`, `getStarById`) used by Server Components during SSG.
-
-### 3.6 Production Deployment Configuration
-
-Several critical configurations were required to make the production deployment stable:
-
-* **Cloud Run Memory:** The `firebase.json` file is configured to provision the `frameworksBackend` service with **1GiB of memory** to prevent out-of-memory crashes during Next.js server-side rendering.
-* **Next.js Image Optimization:** The `next.config.mjs` file includes `remotePatterns` for both `storage.googleapis.com` (for Signed URLs like avatars) and `firebasestorage.googleapis.com` (for Firebase token URLs like generated images). `sizes` props (e.g., `sizes="16rem"`) are used in components like `PoetPage` to ensure high-resolution images are fetched.
-* **Build Error Workaround:** The `next.config.mjs` file currently uses `typescript: { ignoreBuildErrors: true }` and `eslint: { ignoreBuildErrors: true }`. This is a **temporary hack** to bypass a persistent `PageProps` type error and ESLint errors that were blocking deployment. This must be addressed for a clean production build (see `BACKLOG.md`).
 
 ---
 ## 4. Security, Testing, and Setup
@@ -271,7 +261,7 @@ The gallery employs a multi-layered security approach, combining server-side saf
 
 * **Server-Side Security (Firebase Admin SDK):**
     * The entire Next.js server (SSG, SSR, API Routes) runs in a **Google Cloud Run** container managed by Firebase Hosting.
-    * A **centralized Firebase Admin SDK** (`src/lib/firebaseAdmin.ts`) is initialized as a **uniquely named app** (`haikuverse-gallery-admin`) to prevent conflicts.
+    * A **centralized Firebase Admin SDK** (`src/lib/firebaseAdmin.ts`) is initialized using a **singleton pattern** to ensure a single, shared connection to Firebase services.
     * This Admin SDK is used by all server-side code (SSG, API Routes) for data fetching and token verification.
     * **In Production:** Credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are securely injected into the Cloud Run environment from **Google Secret Manager** at deploy time, as configured in `firebase.json`.
     * **In Development:** Credentials are read from local `.env.local` variables.
@@ -286,7 +276,7 @@ The gallery employs a multi-layered security approach, combining server-side saf
 
 * **Secure Cloud Function Interaction:**
     * Next.js API Routes act as a secure proxy to the original Haikuverse v1 Cloud Functions (`getFollowingDetails`, `getFollowersDetails`).
-    * The API Route verifies the client's ID token using the named Admin app (`auth.verifyIdToken()`), then makes a server-to-server `fetch` call to the Cloud Function URL, forwarding the ID token for the v1 function to perform its own verification.
+    * The API Route verifies the client's ID token using the Admin SDK, then makes a server-to-server `fetch` call to the Cloud Function URL, forwarding the ID token for the v1 function to perform its own verification.
 
 ### 4.2 Testing Strategy
 
@@ -304,7 +294,7 @@ To set up and run this project locally, follow these steps:
 
 **Prerequisites:**
 
-* **Node.js** (v20+ recommended)
+* **Node.js** (v20 recommended to match production)
 * **Visual Studio Code** or another code editor
 * Access to the Haikuverse Firebase project
 * Google Cloud Project with Billing enabled
@@ -372,71 +362,37 @@ To set up and run this project locally, follow these steps:
 
 ### 4.4 Production Deployment (Firebase Hosting)
 
-Deploying to production requires additional one-time setup:
+Deploying to production requires one-time setup for credentials and authorized domains.
 
-1.  **Configure Build Workarounds (Temporary):**
-    * In `next.config.mjs`, add the following blocks to ignore the persistent TypeScript and ESLint errors during the build (see `BACKLOG.md` to fix these):
-```javascript
-        typescript: {
-          ignoreBuildErrors: true,
-        },
-        eslint: {
-          ignoreBuildErrors: true,
-        },
-```
-
-2.  **Configure Server Secrets (Google Secret Manager):**
+1. **Configure Server Secrets (Google Secret Manager):**
     * Go to **Google Cloud Console > Security > Secret Manager**.
-    * Create three secrets:
-        1.  `GALLERY_FIREBASE_PROJECT_ID`: Value = `haiku-bot-advanced`
-        2.  `GALLERY_FIREBASE_CLIENT_EMAIL`: Value = `firebase-adminsdk-fbsvc@...iam.gserviceaccount.com`
-        3.  `GALLERY_FIREBASE_PRIVATE_KEY`: **CRITICAL:** Paste the **raw, multi-line** private key value directly from the **downloaded service account JSON file** (do *not* use the single-line string from `.env.local`).
+    * Create three secrets: `GALLERY_FIREBASE_PROJECT_ID`, `GALLERY_FIREBASE_CLIENT_EMAIL`, and `GALLERY_FIREBASE_PRIVATE_KEY`.
+    * **CRITICAL:** For the `PRIVATE_KEY` secret, paste the **raw, multi-line** key value directly from the **downloaded service account JSON file**.
+    * Grant the project's **Cloud Run service account** the **"Secret Manager Secret Accessor"** role for each of these secrets.
 
-3.  **Configure Cloud Run Service:**
-    * Go to **Google Cloud Console > Cloud Run** and find the `ssrhaikuversegallery` service.
-    * Click on the **"Revisions"** tab, select the latest revision, and go to its **"Security"** tab.
-    * Copy the **Service account** email (e.g., `94508156564-compute@developer.gserviceaccount.com`).
-    * Go back to **Secret Manager**. For each of the three secrets created, go to **"Permissions"**, click **"+ Grant Access"**, paste the service account email as the principal, and assign the role **"Secret Manager Secret Accessor"**.
-
-4.  **Configure `firebase.json`:**
-    * Update your `firebase.json` file to increase memory and link the secrets:
+2. **Configure `firebase.json`:**
+    * Update your `firebase.json` to link the secrets to the Cloud Run environment and set the memory:
 ```json
-        {
-          "target": "gallery",
-          "source": ".",
-          "ignore": [...],
-          "frameworksBackend": {
-            "region": "us-central1",
-            "memory": "1GiB", // <--- Increase memory
-            "secretEnvironmentVariables": [ // <--- Link secrets
-              {
-                "key": "PRIVATE_KEY",
-                "secret": "GALLERY_FIREBASE_PRIVATE_KEY"
-              },
-              {
-                "key": "CLIENT_EMAIL",
-                "secret": "GALLERY_FIREBASE_CLIENT_EMAIL"
-              },
-              {
-                "key": "PROJECT_ID",
-                "secret": "GALLERY_FIREBASE_PROJECT_ID"
-              }
-            ]
-          }
-        }
+    "frameworksBackend": {
+      "memory": "1GiB",
+      "secretEnvironmentVariables": [
+        { "key": "PRIVATE_KEY", "secret": "GALLERY_FIREBASE_PRIVATE_KEY" },
+        { "key": "CLIENT_EMAIL", "secret": "GALLERY_FIREBASE_CLIENT_EMAIL" },
+        { "key": "PROJECT_ID", "secret": "GALLERY_FIREBASE_PROJECT_ID" }
+      ]
+    }
 ```
 
-5.  **Configure GSI & App Check Domains:**
-    * **GCP OAuth Client ID:** Go to **APIs & Services > Credentials**. Edit your "Web client" OAuth ID. Under **"Authorized JavaScript origins"**, add `https://haikuverse-gallery.web.app`.
-    * **reCAPTCHA Enterprise:** Go to **Security > reCAPTCHA Enterprise**. Edit your key. Under **"Domains"**, add `haikuverse-gallery.web.app`.
-    * **Firebase App Check:** Go to **Firebase Console > App Check > Apps**. Find "Haikuverse Gallery (web)" and "Register" it, providing your reCAPTCHA site key.
+3. **Configure GSI & App Check Domains:**
+    * **GCP OAuth Client ID:** In **APIs & Services > Credentials**, add `https://haikuverse-gallery.web.app` to the "Authorized JavaScript origins" of your Web client OAuth ID.
+    * **reCAPTCHA Enterprise:** Edit your key and add `haikuverse-gallery.web.app` to the "Domains" list.
+    * **Firebase App Check:** In the Firebase Console, register your web app with the reCAPTCHA key.
 
-6.  **Deploy:**
+4. **Deploy:**
 ```bash
     firebase deploy --only hosting:gallery
 ```
 
----
 ---
 ## 5. Design Philosophy & Production Architecture
 
@@ -448,7 +404,7 @@ A key architectural choice was building the gallery with **Next.js** and deployi
 
 ### 5.2 A Secure & Resilient Backend Infrastructure
 
-Getting the gallery to run reliably in a production environment required a robust backend configuration to handle authentication, credentials, and resource management. The core of the backend is a centralized **Firebase Admin SDK** (`src/lib/firebaseAdmin.ts`), which is initialized as a **uniquely named app** (`haikuverse-gallery-admin`) to prevent initialization conflicts within the Next.js server environment. All API routes were refactored to import and use the single, correctly initialized `auth` and `db` instances from this file, fixing all "default Firebase app does not exist" 500 errors. In production, server-side credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are securely injected into the Cloud Run environment from **Google Secret Manager**, as configured in `firebase.json`. This configuration also provisions the service with **`"memory": "1GiB"`** to ensure the Next.js server has enough resources to handle SSR and image optimization without crashing.
+The production environment runs reliably on a **Google Cloud Run** service managed by Firebase. The core of the backend is a centralized **Firebase Admin SDK** (`src/lib/firebaseAdmin.ts`), initialized using a **singleton pattern** to ensure a single, performant connection to Firebase services. In production, server-side credentials are securely injected into the Cloud Run environment from **Google Secret Manager**, as configured in `firebase.json`, which also provisions the service with **`"memory": "1GiB"`** to ensure the Next.js server has enough resources for server-side rendering.
 
 ### 5.3 Robust Authentication (GSI & App Check)
 
@@ -456,7 +412,7 @@ Integrating Google Sign-In on a custom domain with App Check required solving a 
 
 ### 5.4 Performance & Optimization
 
-The site uses the Next.js `<Image>` component for all content, with `remotePatterns` configured for both `storage.googleapis.com` (for Signed URL avatars) and `firebasestorage.googleapis.com` (for Firebase token-based images). Low-resolution, pixelated avatars on poet pages were fixed by adding a `sizes="16rem"` prop to the avatar's `<Image>` component, correctly informing Next.js to fetch a high-quality image that matches the CSS container. As a temporary measure to unblock deployment, the `next.config.mjs` file currently uses `typescript: { ignoreBuildErrors: true }` and `eslint: { ignoreBuildErrors: true }` to bypass a persistent TypeScript build error and several ESLint warnings. These issues do not affect performance and are tracked in the `BACKLOG.md` for a future permanent fix.
+The site uses the Next.js `<Image>` component for all content, with `remotePatterns` configured for Firebase Storage (`storage.googleapis.com` and `firebasestorage.googleapis.com`). Low-resolution, pixelated avatars on poet pages were fixed by adding a `sizes="16rem"` prop to the avatar's `<Image>` component, correctly informing Next.js to fetch a high-quality image. The entire project was downgraded to the stable **Next.js 14** and **React 18** stack to resolve a critical, persistent TypeScript build error, and the codebase now passes all linting and type checks without workarounds.
 
 ###  5.5 Data Freshness & Caching Strategy
 A core challenge was solving the "stale data" problem inherent with static site generation. Content pre-rendered at build time would not reflect new stars or community activity in Firebase. The solution was to implement **Incremental Static Regeneration (ISR)** across all public-facing server pages. By exporting revalidate = 3600 from each page, we instruct the Next.js server to serve the fast, cached version while automatically regenerating the page in the background if it's more than an hour old. This one-hour period was a deliberate choice, balancing the need for fresh content against the cost of server resources and Firebase reads, perfectly aligning with the gallery's role as a public archive rather than a real-time feed.
