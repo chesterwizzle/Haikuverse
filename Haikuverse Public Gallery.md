@@ -6,15 +6,15 @@
 The Haikuverse Public Gallery is a lightweight, read-only web portal designed to serve as the public, discoverable "front door" to the Haikuverse ecosystem while also providing a personalized hub for authenticated members.
 
 Built with **Next.js**, it is deployed on **Firebase Hosting** using the `frameworksBackend` feature, which intelligently runs all server-side logic (API Routes, SSR) on a scalable **Google Cloud Run** service. It strategically employs a **hybrid rendering model**:
-* **Static Site Generation (SSG):** Used for core SEO pages like Poet Portfolios and Constellation Galleries, ensuring maximum performance and discoverability.
-* **Server-Side Rendering (SSR) / Dynamic:** Used for API routes and individual Star detail pages.
-* **Static Rendering:** Used for client-side pages like the Homepage and Dashboard.
+* **Static Site Generation with ISR:** Used for all core public pages (Home, Poet, Constellation) to combine maximum performance with automatic data-freshness.
+* **Dynamic Rendering:** Used for individual Star pages and all secure API routes.
+* **Client-Side Rendering:** Used for the fully interactive user Dashboard.
 
 This mission-critical app attracts new users organically and offers a convenient, high-performance web touchpoint for the existing community.
 
 ### Key Features:
 
-* **Blazing Fast & SEO-Optimized:** Leverages **Next.js**'s hybrid rendering, using **SSG** for core content (`/poet/[nickname]`, `/constellation/[name]`) to ensure fast load times and search engine visibility.
+* **Blazing Fast & Always Fresh:** Leverages Incremental Static Regeneration (ISR) for core content (`/poet/[nickname]`, `/constellation/[name]`). This combines the instant load times of static generation with the ability to automatically refresh data from Firebase in the background, ensuring content like new stars and follower counts stays up-to-date without needing a redeploy.
 * **Dynamic Poet Portfolios:** Every poet gets a unique, shareable, statically-generated page that automatically showcases their bio, high-resolution avatar, owned constellations, and contributions to other constellations.
 * **Immersive Constellation Galleries:** Each constellation has its own dedicated, statically-generated page featuring its fable, lore image, and a gallery of all the stars within it.
 * **Detailed Star Experience:** A server-rendered star page showcases each creation with a high-resolution, optimized image slideshow timed to the cadence of the audio preview and a display for community like counts.
@@ -219,6 +219,7 @@ The application is built using the **Next.js App Router**, which uses a file-bas
 The gallery employs a hybrid rendering approach, optimized for SEO, performance, and interactivity.
 
 * **Static Site Generation (SSG):** Core discovery pages like poet portfolios (`/poet/[nickname]`) and constellation galleries (`/constellation/[name]`) use `generateStaticParams`. This pre-renders static HTML at build time using the **Firebase Admin SDK** for secure data fetching, ensuring fast initial loads and excellent SEO.
+* **Incremental Static Regeneration (ISR):** To prevent content from becoming stale, all statically-generated and server-rendered pages employ ISR with a revalidate period of one hour (3600s). This strategy ensures that while users always receive an instant, cached response, the page is automatically rebuilt in the background if new data (e.g., new stars, updated follower counts) is available. This provides the perfect balance between static performance and data freshness, minimizing server load and Firebase reads.
 * **Server-Side Rendering (SSR):** Individual star detail pages (`/star/[id]`) are rendered on-demand (dynamic) to ensure the latest like counts and details are always shown.
 * **Client-Side Rendering (CSR):** Pages requiring user interaction and browser-side state (like the Homepage and Dashboard) are designated as Client Components using the **`"use client";`** directive.
 * **API Routes:** Serverless functions co-located with the app (`/api/*`) act as a secure backend gateway for Client Components.
@@ -457,7 +458,10 @@ Integrating Google Sign-In on a custom domain with App Check required solving a 
 
 The site uses the Next.js `<Image>` component for all content, with `remotePatterns` configured for both `storage.googleapis.com` (for Signed URL avatars) and `firebasestorage.googleapis.com` (for Firebase token-based images). Low-resolution, pixelated avatars on poet pages were fixed by adding a `sizes="16rem"` prop to the avatar's `<Image>` component, correctly informing Next.js to fetch a high-quality image that matches the CSS container. As a temporary measure to unblock deployment, the `next.config.mjs` file currently uses `typescript: { ignoreBuildErrors: true }` and `eslint: { ignoreBuildErrors: true }` to bypass a persistent TypeScript build error and several ESLint warnings. These issues do not affect performance and are tracked in the `BACKLOG.md` for a future permanent fix.
 
-### 5.5 Design Principles (Maintainability & User Experience)
+###  5.5 Data Freshness & Caching Strategy
+A core challenge was solving the "stale data" problem inherent with static site generation. Content pre-rendered at build time would not reflect new stars or community activity in Firebase. The solution was to implement **Incremental Static Regeneration (ISR)** across all public-facing server pages. By exporting revalidate = 3600 from each page, we instruct the Next.js server to serve the fast, cached version while automatically regenerating the page in the background if it's more than an hour old. This one-hour period was a deliberate choice, balancing the need for fresh content against the cost of server resources and Firebase reads, perfectly aligning with the gallery's role as a public archive rather than a real-time feed.
+
+### 5.6 Design Principles (Maintainability & User Experience)
 
 The styling architecture is built on **CSS Modules** to guarantee stability. Each component or page is paired with its own `*.module.css` file, generating unique class names that make it impossible for styles to leak and break other components. All database query logic is consolidated into a dedicated **service layer** (`/lib/firebaseService.ts`), allowing UI components to remain clean and making database logic easy to maintain. This design allows the Public Gallery to serve its dual role: for the public, it's a fast, read-only "showroom" designed for SEO and discovery. For authenticated members, it transforms into a personalized web portal, with the **Dashboard** providing a familiar hub and quick access to their community and creator tools.
 
