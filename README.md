@@ -27,7 +27,7 @@ Haikuverse is a creative ecosystem built on a **"Designed for Humans"** philosop
 The ecosystem consists of two primary components:
 
 1.  **The Haikuverse Application (Flutter):** The core multi-sensory experience. This Flutter app (for Android and web) is where users co-create with AI partners (**Gemini**, **Imagen 3**, and **Text-to-Speech**). They can publish their work and explore the community through a unique, procedurally generated 2D "constellation" graph.
-2.  **The Public Gallery (Next.js):** The public-facing, SEO-optimized "front door" for discovery. This Next.js web portal uses Static Site Generation (SSG) to create fast, indexable poet portfolios and constellation galleries, serving as the main user acquisition funnel and a personalized dashboard for members.
+2.  **The Public Gallery (Next.js):** The public-facing, SEO-optimized "front door" for discovery. This Next.js web portal uses **Incremental Static Regeneration (ISR)** to create fast, indexable poet portfolios and constellation galleries, combining the performance of static generation with automatic data freshness.
 
 ## Detailed Documentation
 
@@ -43,7 +43,7 @@ A comprehensive deep-dive into the main **Flutter application**. This document d
 
 * **[View Full Technical Documentation: Haikuverse Public Gallery.md](./Haikuverse%20Public%20Gallery.md)**
 
-The official documentation for the **public-facing Next.js web portal**. This file explains the hybrid rendering model (SSG/SSR) used for SEO, the server-side architecture (Cloud Run, Admin SDK, Secret Manager), and the secure authentication flow for the member dashboard.
+The official documentation for the **public-facing Next.js web portal**. This file explains the hybrid rendering model (ISR, SSG, and SSR) used for SEO, the server-side architecture (Cloud Run, Admin SDK, Secret Manager), and the secure authentication flow for the member dashboard.
 
 ---
 ## License
