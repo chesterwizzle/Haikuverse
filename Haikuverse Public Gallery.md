@@ -15,14 +15,15 @@ This mission-critical app attracts new users organically and offers a convenient
 ### Key Features:
 
 * **Blazing Fast & Always Fresh:** Leverages Incremental Static Regeneration (ISR) for core content (`/poet/[nickname]`, `/constellation/[name]`). This combines the instant load times of static generation with the ability to automatically refresh data from Firebase in the background, ensuring content like new stars and follower counts stays up-to-date without needing a redeploy.
+* **Interactive Homepage Hub:** Features a dynamic **Zeitgeist Map** highlighting trending community themes and a **Poet Search** bar for easy discovery.
+* **Clear User Acquisition Funnel:** A prominent call-to-action on the main page directs new visitors to the Google Play Store, creating a direct path from discovery to download.
 * **Dynamic Poet Portfolios:** Every poet gets a unique, shareable, statically-generated page that automatically showcases their bio, high-resolution avatar, owned constellations, and contributions to other constellations.
 * **Immersive Constellation Galleries:** Each constellation has its own dedicated, statically-generated page featuring its fable, lore image, and a gallery of all the stars within it.
 * **Detailed Star Experience:** A server-rendered star page showcases each creation with a high-resolution, optimized image slideshow timed to the cadence of the audio preview and a display for community like counts.
-* **Clear User Acquisition Funnel:** A prominent call-to-action on the main page directs new visitors to the Google Play Store, creating a direct path from discovery to download.
-* **Interactive Homepage Hub:** Features a dynamic **Zeitgeist Map** highlighting trending community themes and a **Poet Search** bar for easy discovery.
-* **Secure User Authentication:** Supports secure sign-in via **Google Sign-In (GSI)**, managed globally with React Context. The production environment is secured by authorizing the live domain in both the **GCP OAuth Client ID** and the **reCAPTCHA Enterprise key** settings.
 * **Personalized Member Dashboard:** Logged-in users access a dashboard that calls serverless API routes to display their Haikuverse **nickname** and real-time lists of poets they **follow** and who **follow them**.
-* **Gated Creator Access:** Provides a convenient link to the **Haikuverse Web Creator** for authenticated users.
+* **Gated Creator Access:** Provides a convenient link to the **Haikuverse Web Creator** and the **Print Studio** for authenticated subscribers.
+* **High-Resolution Haikucard Generation:** A dedicated Print Studio allows authenticated users to generate high-resolution, print-ready PNG files of their favorite haikus. The server-side API dynamically composites artwork and text onto various backgrounds (paper, foil, solid colors), automatically adjusting font size and centering to create a perfectly balanced layout with true transparency.
+* **Secure User Authentication:** Supports secure sign-in via **Google Sign-In (GSI)**, managed globally with React Context. The production environment is secured by authorizing the live domain in both the **GCP OAuth Client ID** and the **reCAPTCHA Enterprise key** settings.
 * **Robust & Secure Backend:**
     * Employs a server-only **Firebase Admin SDK** initialized using a **singleton pattern** (`src/lib/firebaseAdmin.ts`) to prevent redundant initializations and improve server performance.
     * All server-side credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are securely injected into the **Google Cloud Run** environment at deploy time using **Google Secret Manager**, configured via `firebase.json`.
@@ -51,7 +52,7 @@ flowchart LR
     User["User Interaction"]
     subgraph ClientComponents ["Client Components (React)"]
         HomePageClient["Home Page<br>(ZeitgeistClient, PoetSearch)"]
-        DashboardPageClient["Dashboard Page"]
+        DashboardPageClient["Dashboard Page<br>(HaikucardEditor)"]
         HeaderClient["Header (Auth Aware)"]
         SSGPages["SSG Pages (Hydrated)<br>(Poet, Constellation)"]
     end
@@ -82,6 +83,7 @@ flowchart LR
             ApiFollowing["/api/network/following"]
             ApiFollowers["/api/network/followers"]
             ApiSearch["/api/search-poets"]
+            ApiGeneratePng["/api/print/generate-png"]
             SSRPageGen["SSR Page Generation<br>(/star/[id])"]
         end
     end
@@ -102,9 +104,9 @@ flowchart LR
 
   %% --- Flows ---
 
-  %% DEPLOYMENT & INITIALIZATION (THE CRITICAL FIX)
+  %% DEPLOYMENT & INITIALIZATION
   SecretManager -- "Injects Env Vars (PRIVATE_KEY, ...)" --> CloudRun
-  CloudRun -- "On Start" --> FirebaseAdminModule
+  %% CloudRun -- "On Start" --> FirebaseAdminModule
 
   %% Static Page Load (SSG) - Build Time
   NextServerBuild --> SSGPageGen
@@ -112,25 +114,24 @@ flowchart LR
   FirebaseAdminModule -- "Reads" --> FirestoreDB
   SSGPageGen -- "Generates" --> StaticAssets
   User -- "Visits /poet/Wiz" --> Hosting
-  Hosting -- "Serves" --> StaticAssets
+  %% Hosting -- "Serves" --> StaticAssets
   StaticAssets -- "Loads in" --> Browser
   StaticAssets -- "Hydrates" --> SSGPages
 
   %% SSR Page Load (Star Page) - Runtime
   User -- "Visits /star/123" --> Hosting
-  Hosting -- "Rewrites to" --> CloudRun
   Hosting -- "Rewrites SSR/API to" --> NextServerRuntime
+  NextServerRuntime -- "Renders Page" --> SSRPageGen
   SSRPageGen -- "Imports & Uses" --> FirebaseAdminModule
   FirebaseAdminModule -- "Reads" --> FirestoreDB
-  SSRPageGen -- "Returns HTML" --> Browser
-NextServerRuntime -- "Sends HTML / JSON" --> Browser
+  SSRPageGen -- "Returns HTML" --> NextServerRuntime
+  NextServerRuntime -- "Sends HTML" --> Browser
 
   %% Home Page Client Interaction (Search)
   User -- "Searches on Home" --> HomePageClient
   HomePageClient -- "Calls API" --> ApiSearch
   ApiSearch -- "Imports & Uses" --> FirebaseAdminModule
   FirebaseAdminModule -- "Reads Nicknames" --> FirestoreDB
-  FirebaseAdminModule -- "Returns results" --> ApiSearch
   ApiSearch -- "Returns JSON" --> HomePageClient
   HomePageClient -- "Updates UI" --> User
 
@@ -145,28 +146,30 @@ NextServerRuntime -- "Sends HTML / JSON" --> Browser
   FirebaseAuthBackend -- "Returns User" --> FirebaseClientSDK
   FirebaseClientSDK -- "Updates" --> AuthContext
   AuthContext -- "Notifies" --> HeaderClient & DashboardPageClient
-  DashboardPageClient -- "Updates UI" --> User
 
+  %% Haikucard Generation Flow
+  User -- "Clicks Generate PNG" --> DashboardPageClient
+  DashboardPageClient -- "Calls API with Token & Options" --> ApiGeneratePng
+  ApiGeneratePng -- "Imports & Uses" --> FirebaseAdminModule
+  FirebaseAdminModule -- "Verifies Token & Reads Haiku" --> FirebaseAuthBackend & FirestoreDB
+  ApiGeneratePng -- "Returns PNG Blob" --> DashboardPageClient
+  DashboardPageClient -- "Updates UI (shows download link)" --> User
+  
   %% Dashboard Data Fetch Flow
   User -- "Navigates to /dashboard" --> DashboardPageClient
   DashboardPageClient -- "Gets ID Token from" --> FirebaseClientSDK
-  DashboardPageClient -- "Calls API" --> ApiNickname
-  DashboardPageClient -- "Calls API" --> ApiFollowing
-  DashboardPageClient -- "Calls API" --> ApiFollowers
+  DashboardPageClient -- "Calls APIs" --> ApiNickname & ApiFollowing & ApiFollowers
 
   %% API Route Flow (Nickname Example)
   ApiNickname -- "Imports & Uses" --> FirebaseAdminModule
-  FirebaseAdminModule -- "Verifies Token" --> FirebaseAuthBackend
-  FirebaseAdminModule -- "Reads /public_profiles" --> FirestoreDB
+  FirebaseAdminModule -- "Verifies Token & Reads DB" --> FirebaseAuthBackend & FirestoreDB
   ApiNickname -- "Returns data" --> DashboardPageClient
-
+  
   %% API Route Flow (Following Example - Proxy)
   ApiFollowing -- "Imports & Uses" --> FirebaseAdminModule
-  FirebaseAdminModule -- "Verifies Token" --> FirebaseAuthBackend
   ApiFollowing -- "Calls (HTTP POST)" --> CloudFunctions
-  CloudFunctions -- "(getFollowingDetails)<br>Verifies Token & Reads DB" --> FirebaseAuthBackend & FirestoreDB
+  CloudFunctions -- "Verifies Token & Reads DB" --> FirebaseAuthBackend & FirestoreDB
   CloudFunctions -- "Returns results" --> ApiFollowing
-  ApiFollowing -- "Returns data" --> DashboardPageClient
 
   %% Final UI Update
   DashboardPageClient -- "Updates UI" --> User
@@ -191,6 +194,7 @@ The Haikuverse Public Gallery is built on a modern, SEO-first technology stack, 
 | :------------------- | :----------------------------------------------- | :-------------------------------------------- |
 | **Web Framework**    | Next.js (App Router), React, TypeScript          | UI, Routing, SSG/SSR, API Routes              |
 | **Styling**          | CSS Modules                                      | Component-scoped styling                      |
+| **Image Composition**| **sharp** (Node.js)                              | High-performance server-side image processing |
 | **Client Auth**      | Firebase Auth SDK, Google Sign-In (GSI), Context | User login, session management                |
 | **Client Security**  | Firebase App Check (reCAPTCHA Enterprise)        | Verifying client integrity                    |
 | **Server Backend**   | **Google Cloud Run** (via Firebase)              | Hosts all server-side Next.js logic           |
@@ -249,6 +253,7 @@ This layer manages the connection to backend services and enforces security, run
 * **Secure Credentials:** In production, server-side credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are **injected securely from Google Secret Manager** into the Cloud Run environment at deploy time. This is configured in `firebase.json` using the `secretEnvironmentVariables` block.
 * **API Routes (`src/app/api/`):** All API routes have been refactored to **import the centralized `db` and `auth` instances** from `firebaseAdmin.ts`. This ensures they all use the single, correctly authenticated Admin SDK instance.
 * **Data Fetching Service (`src/lib/firebaseService.ts`):** Centralizes reusable data-fetching functions (e.g., `getAllPoets`, `getStarById`) used by Server Components during SSG.
+ * **Server-Side Image Generation:** A key API route, `/api/print/generate-png`, leverages the **`sharp`** library for high-performance image processing and **`opentype.js`** for precise text measurement. It composites artwork, dynamically-sized haiku text with embedded fonts, and user-selected backgrounds onto a transparent canvas, producing a print-ready 300 DPI PNG with true transparency.
 
 ---
 ## 4. Security, Testing, and Setup
@@ -294,7 +299,8 @@ To set up and run this project locally, follow these steps:
 
 **Prerequisites:**
 
-* **Node.js** (v20 recommended to match production)
+* **Node.js** (v20 required for production compatibility)
+* **Project Structure:** All static assets required by the server (like fonts) **must be placed in the `public` directory**.
 * **Visual Studio Code** or another code editor
 * Access to the Haikuverse Firebase project
 * Google Cloud Project with Billing enabled
@@ -398,26 +404,34 @@ Deploying to production requires one-time setup for credentials and authorized d
 
 The Haikuverse Public Gallery embodies a dual mission, extending the core application's **"Designed for Humans"** philosophy. It serves as both a public, discoverable archive optimized for SEO and a personalized web portal for authenticated members. Architectural decisions balance the need for organic user acquisition via search engines with providing a seamless, low-friction authenticated experience for the existing community.
 
-### 5.1 Hybrid Architecture: Balancing SSG, SSR, and Client Interactivity
+### 5.1 An Open Ecosystem for Creators
+
+A core tenet of the Haikuverse is to create an open ecosystem that empowers and delights creators by giving them multiple channels to share their work. While the native Android app is optimized for quick, social sharing of "haikucards," the Public Gallery extends this philosophy by providing high-fidelity, permanent artifacts.
+
+The **Haikucard Print Studio** is the flagship of this strategy. By giving subscribers the ability to generate magnificent, high-resolution PNGs, we are giving them true ownership of their digital masterpieces. These files are not just for viewing; they are print-ready assets designed for personal use and, eventually, to be seamlessly funneled into a cost-effective **print-on-demand service** for physical products like postcards and mugs.
+
+This multi-channel approach—from ephemeral social shares in-app to permanent digital artifacts and physical products on the web—is designed to create delight and foster a vibrant ecosystem. Public content draws new users in, while authenticated members are rewarded with powerful tools that transform their creations into tangible art, ensuring that there are always new and exciting ways to share their voice.
+
+### 5.2 Hybrid Architecture: Balancing SSG, SSR, and Client Interactivity
 
 A key architectural choice was building the gallery with **Next.js** and deploying it to **Firebase Hosting** with the `frameworksBackend` feature. This runs the entire Next.js application (including server-side logic) on a **Google Cloud Run** service, allowing for a sophisticated hybrid rendering model. Core discovery pages like poet portfolios (`/poet/[nickname]`) and constellation galleries (`/constellation/[name]`) use **Static Site Generation (SSG)**. This pre-renders static HTML at build time, providing semantic content that is perfectly indexable by search engines and loads instantly. Individual star pages (`/star/[id]`) are rendered on-demand (dynamic) to ensure data like like counts is always fresh, while pages requiring user interaction (like the Homepage and Dashboard) are rendered as Client Components using **`"use client";`** to provide a fast, app-like interactive experience.
 
-### 5.2 A Secure & Resilient Backend Infrastructure
+### 5.3 A Secure & Resilient Backend Infrastructure
 
 The production environment runs reliably on a **Google Cloud Run** service managed by Firebase. The core of the backend is a centralized **Firebase Admin SDK** (`src/lib/firebaseAdmin.ts`), initialized using a **singleton pattern** to ensure a single, performant connection to Firebase services. In production, server-side credentials are securely injected into the Cloud Run environment from **Google Secret Manager**, as configured in `firebase.json`, which also provisions the service with **`"memory": "1GiB"`** to ensure the Next.js server has enough resources for server-side rendering.
 
-### 5.3 Robust Authentication (GSI & App Check)
+### 5.4 Robust Authentication (GSI & App Check)
 
 Integrating Google Sign-In on a custom domain with App Check required solving a complex chain of security errors. The final, secure solution required authorizing the production URL (`https://haikuverse-gallery.web.app`) in three distinct places: first, in the **Firebase Console** by registering the reCAPTCHA key to the web app; second, in the **GCP OAuth Client ID's** "Authorized JavaScript origins" (to fix `origin_mismatch`); and third, in the **reCAPTCHA Enterprise Key's** "Domains" list (to fix `appCheck/recaptcha-error`). This multi-pronged configuration ensures both Google's sign-in service and Firebase's App Check service recognize the deployed domain as legitimate.
 
-### 5.4 Performance & Optimization
+### 5.5 Performance & Optimization
 
 The site uses the Next.js `<Image>` component for all content, with `remotePatterns` configured for Firebase Storage (`storage.googleapis.com` and `firebasestorage.googleapis.com`). Low-resolution, pixelated avatars on poet pages were fixed by adding a `sizes="16rem"` prop to the avatar's `<Image>` component, correctly informing Next.js to fetch a high-quality image. The entire project was downgraded to the stable **Next.js 14** and **React 18** stack to resolve a critical, persistent TypeScript build error, and the codebase now passes all linting and type checks without workarounds.
 
-###  5.5 Data Freshness & Caching Strategy
+### 5.6 Data Freshness & Caching Strategy
 A core challenge was solving the "stale data" problem inherent with static site generation. Content pre-rendered at build time would not reflect new stars or community activity in Firebase. The solution was to implement **Incremental Static Regeneration (ISR)** across all public-facing server pages. By exporting revalidate = 3600 from each page, we instruct the Next.js server to serve the fast, cached version while automatically regenerating the page in the background if it's more than an hour old. This one-hour period was a deliberate choice, balancing the need for fresh content against the cost of server resources and Firebase reads, perfectly aligning with the gallery's role as a public archive rather than a real-time feed.
 
-### 5.6 Design Principles (Maintainability & User Experience)
+### 5.7 Design Principles (Maintainability & User Experience)
 
 The styling architecture is built on **CSS Modules** to guarantee stability. Each component or page is paired with its own `*.module.css` file, generating unique class names that make it impossible for styles to leak and break other components. All database query logic is consolidated into a dedicated **service layer** (`/lib/firebaseService.ts`), allowing UI components to remain clean and making database logic easy to maintain. This design allows the Public Gallery to serve its dual role: for the public, it's a fast, read-only "showroom" designed for SEO and discovery. For authenticated members, it transforms into a personalized web portal, with the **Dashboard** providing a familiar hub and quick access to their community and creator tools.
 
