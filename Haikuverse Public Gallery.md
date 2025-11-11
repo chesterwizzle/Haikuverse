@@ -31,6 +31,7 @@ This mission-critical app attracts new users organically and offers a convenient
     * All API routes (`/api/*`) are refactored to import and use the single, centralized `auth` and `db` instances, ensuring consistent, authenticated access to Firebase services.
 * **Optimized for Production:**
     * The deployed Cloud Run service is configured with **1GiB of memory** in `firebase.json` to handle Next.js server-side rendering loads without crashing.
+    * **Environment Parity:** The build process is stabilized by enforcing **Node.js v20** parity between local and production environments. This configuration is required to prevent npm ci failures and includes an explicit dependency on `@opentelemetry/api` (`npm install @opentelemetry/api`) to resolve `MODULE_NOT_FOUND` crashes when converting to Node.js v20.
     * Uses the Next.js `<Image>` component with correctly configured `remotePatterns` (for `storage.googleapis.com` and `firebasestorage.googleapis.com`) and `sizes` props (e.g., `sizes="16rem"` for avatars) to ensure high-resolution, optimized images are served.
 
 ---
@@ -300,7 +301,7 @@ To set up and run this project locally, follow these steps:
 
 **Prerequisites:**
 
-* **Node.js** (v20 required for production compatibility)
+* **Node.js (v20):** It is critical to use Node.js v20.x.x (e.g., via `nvm use 20`) because the production Firebase server runs v20.
 * **Project Structure:** All static assets required by the server (like fonts) **must be placed in the `public` directory**.
 * **Visual Studio Code** or another code editor
 * Access to the Haikuverse Firebase project
