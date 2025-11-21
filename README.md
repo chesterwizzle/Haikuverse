@@ -4,7 +4,7 @@ A rich, multi-sensory platform for creative expression, designed for humans.
 
 **Status:** 🚀 **Closed Alpha Now Complete!**
 
-* The Haikuverse Closed Alpha test for the Android app began on **October 17, 2025** and compeleted on **November 20, 2025**. Haikuverse requires a valid subscription from the Google Play Store. 
+* The Haikuverse Closed Alpha test for the Android app began on **October 17, 2025** and completed on **November 20, 2025**. Haikuverse requires a valid subscription from the Google Play Store. 
 * The Haikuverse Public Gallery went live on Firebase hosting as of **October 22, 2025.** The Print Studio e-commerce will be live for mail-orders in U.S. and Canada on **1 December 2025**. Only subscribers have access to e-commerce through the personalized dashboard. 
 
 To get beta tester access, please contact: **chesterwizzle@fancyland.net**
