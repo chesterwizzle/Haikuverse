@@ -37,6 +37,8 @@ This document offers a comprehensive technical deep-dive into Haikuverse's archi
 
 * **Secure & Resilient Without Compromise:** The application is built on a scalable serverless backend using **Google Cloud Functions** and **Firestore**. Security is paramount, enforced through **Firebase App Check** attestation, a data model that strictly segregates private and public user data, and a full suite of account management tools. The system even includes self-healing maintenance functions for its `Knowledge Graph`, designed for long-term data integrity and resilience.
 
+* **Connected Public Ecosystem:** Seamlessly integrated with the **Haikuverse Public Gallery**, a Next.js companion web app that serves as an SEO acquisition funnel and high-resolution **Print Studio**, sharing the same Firestore backend and Cloud Functions for a unified user experience.
+
 ---
 ## 2. Functional Block Diagram of the Haikuverse App
 
@@ -221,6 +223,15 @@ flowchart LR
         CloudFunctionsBackend
         CloudAPIs
   end
+ subgraph PublicGalleryApp["**Haikuverse Public Gallery**"]
+    direction TB
+        GalleryClient["**Gallery Client (Next.js)**<br>(Browser / Vercel)"]
+        subgraph GalleryCloudRun["**Gallery Server (Cloud Run)**"]
+            GallerySSR["SSR/ISR Engine<br>(Static Gen & Revalidation)"]
+            GalleryAPIProxy["API Proxy Routes<br>(Auth & Data Fetching)"]
+            GalleryEcomm["E-Commerce Engine<br>(Print & Stripe Logic)"]
+        end
+  end
 
     HaikuverseNavigationScreen --> ProceduralGraph & VectorArtPainter
     StarDetailPopup --> ExperienceTab & LogbookTab & PoetTab
@@ -287,6 +298,13 @@ flowchart LR
     FollowerShareModal -- Sends Invites via --> FirestoreServiceFlutter
     NotificationsScreen -- Sets Deep Link Intent --> GlobalProviders
     GlobalProviders -- Navigates via Intent --> ConstellationsScreenDef
+    GalleryClient <-- Client Auth --> FirebaseAuthBackend
+    GalleryClient -- Fetches --> GalleryCloudRun
+    GallerySSR -- Admin SDK Read --> FirestoreDatabaseBackend
+    GalleryAPIProxy -- Admin SDK Read/Write --> FirestoreDatabaseBackend
+    GalleryAPIProxy -- Proxies Calls --> SocialFuncs
+    GalleryEcomm -- Admin SDK Read/Write --> FirestoreDatabaseBackend
+    GalleryEcomm -- Uploads Assets --> FirebaseStorageBackend
 
     style SettingsTab fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
     style CustomizationTabDef fill:#d8bfd8,stroke:#4b0082,stroke-width:1px
@@ -314,8 +332,12 @@ flowchart LR
     style Backend stroke:#4b0082,stroke-width:3px
     style AppShell fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
     style AccountMgmtScreenDef fill:#e6e6fa,stroke:#4b0082,stroke-width:1px
-    style AccountMgmtFuncs fill:#E8F0FE,stroke:#4285F4,stroke-width:1px
     style main_dart fill:#E8F0FE,stroke:#4285F4,stroke-width:1px
+    style PublicGalleryApp fill:#E0F2F1,stroke:#009688,stroke-width:2px
+    style GalleryCloudRun fill:#E0F2F1,stroke:#009688,stroke-width:1px
+    style GallerySSR fill:#ffffff,stroke:#009688,stroke-width:1px
+    style GalleryAPIProxy fill:#ffffff,stroke:#009688,stroke-width:1px
+    style GalleryEcomm fill:#ffffff,stroke:#009688,stroke-width:1px
 ```    
 
 ---
@@ -726,6 +748,16 @@ The server-side logic is implemented as a suite of Google Cloud Functions (deplo
     *   `knowledgeGraphHealer` (Scheduler Trigger, v2): A weekly self-healing job that finds "orphaned" constellations (zero neighbors) and uses Vector Search to find and assign new semantic neighbors.
     *   `cleanupFableIndex` / `cleanupStarIndex` (HTTP, v2): On-demand, admin-triggered scripts to remove any "orphan" entries from the Vector Search indices that no longer correspond to a valid Firestore document.
 
+*   **E-Commerce Fulfillment & Privacy (Shared Backend Logic):**
+    *   `onOrderPaid` (Firestore Trigger, v2): Listens for paid orders from the Public Gallery. It orchestrates the "Clump Factory" hand-off to the **Gelato API** (v4) for physical manufacturing and triggers the **Firebase Email Extension** to send transactional emails.
+    *   `purgeAbandonedOrders` (Scheduler Trigger, v2): A daily janitor that deletes `pending_payment` orders older than 24 hours to maintain database hygiene.
+    *   `purgeDeliveredOrders` (Scheduler Trigger, v2): The "Privacy Janitor." It enforces data sovereignty by atomicaly hard-deleting order documents, PII-laden email logs, and print assets from Storage 180 days after delivery.
+
+### 3.7 Companion Web App (Public Gallery)
+The Haikuverse ecosystem includes a separate but connected Next.js web application ("The Public Gallery") designed as an SEO acquisition funnel and e-commerce engine. While the Flutter app handles creation and social interaction, the Gallery serves two distinct roles:
+*   **Discovery:** Provides static, indexable web pages for poets and constellations with deep links (`haikuverse://`) back to the mobile app.
+*   **Print Studio:** Functions as a secure e-commerce portal, allowing users to purchase physical "Haikucards" of their creations using shared assets from the main app.
+
 ---
 ## 4. Data Flow & Security
 
@@ -862,10 +894,10 @@ This project utilizes Firebase Functions (Google Cloud Functions 2nd Gen) for it
 * **Google Cloud Project:** A Google Cloud project linked to your Firebase project.
 * **Firebase CLI:** Firebase Command Line Interface (`firebase-tools`) installed and configured. ([Installation Guide](https://firebase.google.com/docs/cli))
 * **FlutterFire CLI:** Required for Firebase configuration in your Flutter project. ([Installation Guide](https://firebase.flutter.dev/docs/cli/))
-* **Node.js and npm:** Required for Firebase Functions. **Node.js version 22 is specified in `functions/package.json`.** Using Node Version Manager (`nvm`) is highly recommended.
+* **Node.js and npm:** Required for Firebase Functions. **Node.js version 20 is required by the production environment.** Using Node Version Manager (`nvm`) is highly recommended.
     * **Windows:** Install `nvm-windows` ([GitHub](https://github.com/coreybutler/nvm-windows/releases)).
     * **macOS/Linux:** Install `nvm` ([GitHub](https://github.com/nvm-sh/nvm)).
-    * After installing `nvm`, run: `nvm install 22` and `nvm use 22`.
+    * After installing `nvm`, run: `nvm install 20` and `nvm use 20`.
 * **Enabled Firebase Services:**
     * Firebase Authentication (with Email/Password and Google sign-in methods enabled).
     * Cloud Firestore (ensure you've created a database, typically in Native mode).
@@ -1039,6 +1071,8 @@ Once inside, the core experience continues this philosophy, prioritizing intuiti
 **Accessibility and inclusivity** are integral, not addons. `Semantics` widgets provide vital context for assistive technologies, `SelectableText` ensures content is portable, and the planned image-to-text features will further broaden access. Diverse TTS voices acknowledge and cater to varied preferences. Even **nickname validation**, while a security measure, contributes to a respectful and welcoming community space, inviting users to express their identity thoughtfully.
 
 Haikuverse, therefore, offers a **curated yet profoundly flexible creative environment.** Client-side prompt engineering cedes significant artistic control to the user. Persistent cloud storage (Cloud Firestore and Firebase Storage) acts as a reliable guardian of their creative artifacts—profiles, favorite haikus, associated images, audio files, and entire constellation narratives—ensuring their evolving Haikuverse is preserved and accessible across devices. Features like multiple image save slots and the deep customization options for constellations encourage not just creation, but **re-creation**, interpretation, and a continuous, iterative dialogue with their own imagination and the AI's generative capabilities. It is in this dynamic interplay, this invitation to explore, to personalize, to give deeper meaning, that Haikuverse seeks to maximize the inherent human delight in discovery, artistry, and the sublime experience of seeing one's own creative spark amplified and reflected in a universe of their own making.
+
+Finally, this Prohumanist ethos extends to the shared infrastructure powering the **Public Gallery**, where we operationalize integrity through specific architectural choices. We rejected standard transactional models in favor of a "Clump Factory" pattern that freezes pricing and shipping data into immutable snapshots, ensuring the system is mathematically incapable of "bait-and-switch" tactics. We accepted the maintenance burden of a Dual-Asset Pipeline—generating raw blueprints for machines while crafting high-fidelity previews solely for human delight—and implemented a relentless "Janitor Protocol" that automatically incinerates user data and print assets after fulfillment. By refusing to build vast data lakes and instead maintaining strict "clean rooms," we ensure that even in commerce, the user’s sovereignty remains the undisputed center of gravity.
 
 ---
 ## 8. Bridging the Gap: From Development to Production
