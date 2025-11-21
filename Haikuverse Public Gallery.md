@@ -3,14 +3,7 @@
 ---
 ## 1. Introduction
 
-The Haikuverse Public Gallery is a lightweight, read-only web portal designed to serve as the public, discoverable "front door" to the Haikuverse ecosystem while also providing a personalized hub for authenticated members.
-
-Built with **Next.js**, it is deployed on **Firebase Hosting** using the `frameworksBackend` feature, which intelligently runs all server-side logic (API Routes, SSR) on a scalable **Google Cloud Run** service. It strategically employs a **hybrid rendering model**:
-* **Static Site Generation with ISR:** Used for all core public pages (Home, Poet, Constellation) to combine maximum performance with automatic data-freshness.
-* **Dynamic Rendering:** Used for individual Star pages and all secure API routes.
-* **Client-Side Rendering:** Used for the fully interactive user Dashboard.
-
-This mission-critical app attracts new users organically and offers a convenient, high-performance web touchpoint for the existing community.
+The Haikuverse Public Gallery is a high-performance Next.js web application designed to empower two complementary audiences: the curious public and the creative community. Acting as both an SEO-optimized "front door" to the ecosystem and a secure, automated **Print-on-Demand E-Commerce Engine**, the application bridges the gap between ephemeral digital content and permanent physical artifacts. Built on **Firebase Hosting** and backed by **Google Cloud Run**, the architecture strategically employs a hybrid rendering model—combining **Static Site Generation (SSG)** for lightning-fast public access with **Client-Side Rendering (CSR)** for rich, interactive dashboards. This mission-critical platform was engineered to meet users exactly where they are, removing the friction of "walled gardens" to foster inclusivity while maintaining the rigorous security standards required for global manufacturing and financial compliance.
 
 ### Key Features:
 
@@ -23,7 +16,16 @@ This mission-critical app attracts new users organically and offers a convenient
 * **Detailed Star Experience:** A server-rendered star page showcases each creation with a high-resolution, optimized image slideshow timed to the cadence of the audio preview and a display for community like counts.
 * **Personalized Member Dashboard:** Logged-in users access a dashboard that calls serverless API routes to display their Haikuverse **nickname** and real-time lists of poets they **follow** and who **follow them**.
 * **Gated Creator Access:** Provides a convenient link to the **Haikuverse Web Creator** and the **Print Studio** for authenticated subscribers.
-* **High-Resolution Haikucard Generation:** A dedicated Print Studio provides a rich, interactive experience for creators. The studio features a comprehensive grid displaying all three generated images for each star, sorted alphabetically for easy browsing. Users can individually select any of the artworks to load it into the editor, allowing for precise customization. The server-side API then dynamically composites the chosen artwork and text onto various backgrounds (paper, foil, solid colors), automatically adjusting font size and centering to create a perfectly balanced, print-ready PNG with true transparency.
+* **High-Resolution Print Studio:** A dedicated Print Studio empowers creators to browse their generated images and purchase physical Haikucards.
+    * **Server-Side Composition:** Uses the `sharp` library to generate two distinct 300 DPI assets per order: a full-bleed **Blueprint** for the printer and a rounded **Preview** for the user.
+    * **Immutable Orders:** Implements a "Clump Factory" pattern (`/api/orders/create`) that snapshot-freezes pricing, shipping data, and print specifications into a `pending_payment` document *before* the transaction begins, ensuring total data integrity.
+* **Stripe E-Commerce & Tax Compliance:** Features a full **Stripe** integration with **Payment Elements** (supporting Apple Pay/Google Pay) and robust webhook signature verification.
+    * **Automated Tax:** Utilizes `stripe.tax.calculations.create` on the server to calculate sales tax in real-time based on the user's shipping address.
+    * **Tax Ledger:** A webhook listener (`/api/stripe/webhook`) atomically records every transaction into a dedicated, anonymized **Firestore Tax Ledger**, separating tax liability from net revenue for GAAP compliance.
+* **Automated Fulfillment Pipeline:** Paid orders are automatically handed off to the **Gelato API v4** via a secure Cloud Function (`onOrderPaid`). The system handles double-sided printing logic (injecting a static "Back Template"), processes "Shipped" and "Delivered" webhooks, and triggers branded emails via the **Firebase Email Extension**.
+* **Privacy by Design (The "Janitor"):** Aligned with the Prohumanist philosophy, the system minimizes PII retention.
+    * **Zero-PII Friction:** Shipping forms cache data in `localStorage` rather than the database.
+    * **The PII Janitor:** A scheduled backend function (`purgeDeliveredOrders`) automatically hard-deletes order documents, email logs, and print assets 180 days after delivery, leaving behind only the anonymized tax ledger.
 * **Secure User Authentication:** Supports secure sign-in via **Google Sign-In (GSI)**, managed globally with React Context. The production environment is secured by authorizing the live domain in both the **GCP OAuth Client ID** and the **reCAPTCHA Enterprise key** settings.
 * **Robust & Secure Backend:**
     * Employs a server-only **Firebase Admin SDK** initialized using a **singleton pattern** (`src/lib/firebaseAdmin.ts`) to prevent redundant initializations and improve server performance.
@@ -42,11 +44,15 @@ This mission-critical app attracts new users organically and offers a convenient
 config:
   layout: elk
   elk:
-    nodePlacementStrategy: NETWORK_SIMPLEX
+    nodePlacementStrategy: BRANDES_KOEPF
+    spacing:
+      nodeNode: 60
+      component: 40
   theme: base
   themeVariables:
-    lineColor: '#555'
-    textColor: '#333'
+    lineColor: '#666'
+    textColor: '#222'
+    fontSize: '14px'
 ---
 flowchart LR
   subgraph Browser["User's Browser"]
@@ -58,153 +64,168 @@ flowchart LR
         HeaderClient["Header (Auth Aware)"]
         SSGPages["SSG Pages (Hydrated)<br>(Poet, Constellation)"]
     end
-    AuthContext["AuthContext (useAuth)"]
-    FirebaseClientSDK[("Firebase Client SDK<br>(Auth, App Check)")]
-    GSI["Google Sign-In (GSI) Library"]
+    AuthContext["AuthContext"]
+    FirebaseClientSDK[("Firebase Client SDK")]
+    GSI["Google Sign-In Lib"]
   end
 
-  subgraph ProductionEnvironment["Production Environment<br>(GCP)"]
+  subgraph ProductionEnvironment["Production Environment (GCP)"]
     direction TB
-    subgraph Hosting["Firebase Hosting (Frontend)"]
-        direction TB
-        StaticAssets["Static HTML, CSS, JS<br>(SSG Pages, Client Bundles)"]
+    subgraph Hosting["Firebase Hosting"]
+        StaticAssets["Static Assets (HTML/JS)"]
     end
     
-    subgraph CloudRun["Google Cloud Run<br>(Backend)<br>firebase-frameworks<br>-haikuverse-gallery"]
+    subgraph CloudRun["Google Cloud Run (Next.js Server)"]
         direction TB
-        FirebaseAdminModule["**src/lib/firebaseAdmin.ts**<br>(Singleton Pattern for<br>Admin SDK)"]
+        FirebaseAdminModule["**src/lib/firebaseAdmin.ts**<br>(Singleton Admin SDK)"]
         
-        subgraph ServerBuild ["Build Process"]
-            NextServerBuild["Next.js Build"]
-            SSGPageGen["SSG Page Generation<br>(getStaticParams)"]
-        end
-
-        subgraph ServerRuntime ["Runtime"]
-            NextServerRuntime["Next.js Server"]
+        subgraph ServerRuntime ["Runtime API Routes"]
+            %% Data Fetching
+            ApiSearch["/api/search-poets"]
             ApiNickname["/api/profile/nickname"]
+            
+            %% Network Proxy (Cloud Functions)
             ApiFollowing["/api/network/following"]
             ApiFollowers["/api/network/followers"]
-            ApiSearch["/api/search-poets"]
+            
+            %% E-Commerce & Print
             ApiGeneratePng["/api/print/generate-png"]
+            ApiCreateOrder["/api/orders/create"]
+            ApiCreatePayment["/api/stripe/create-payment-intent"]
+            
+            %% Webhooks
+            ApiStripeWebhook["/api/stripe/webhook"]
+            ApiGelatoWebhook["/api/gelato/webhook"]
+            
             SSRPageGen["SSR Page Generation<br>(/star/[id])"]
         end
     end
   end
 
-  subgraph BackendServices["Backend Services (GCP)"]
+  subgraph BackendServices["Backend Services"]
     direction TB
-    SecretManager[("Google Secret Manager<br>GALLERY_FIREBASE_PRIVATE_KEY, ...")]
-    FirestoreDB[("Cloud Firestore<br>/users, /public_profiles, ...")]
-    CloudFunctions[("Haikuverse v1 Cloud Functions<br>getFollowingDetails,<br>getFollowersDetails, ...")]
-    subgraph GoogleAuthServices["Google Auth Services (GCP)"]
-        FirebaseAuthBackend[("Firebase Auth<br>(Backend)")]
-        FirebaseAppCheck[("Firebase App Check")]
-        GCP_OAuth["GCP OAuth Client ID<br>(Authorized JavaScript<br>origins)"]
-        GCP_reCAPTCHA["GCP reCAPTCHA Key<br>(Authorized Domains)"]
+    FirestoreDB[("Cloud Firestore")]
+    StorageBucket[("Firebase Storage")]
+    
+    subgraph CloudFunctionsV1["v1 Cloud Functions"]
+        ProxyFunctions["getFollowing / getFollowers"]
+        OnOrderPaid["onOrderPaid"]
     end
+
+    EmailExt["Email Extension"]
+    FirebaseAppCheck["Firebase App Check"]
+    FirebaseAuthBackend["Firebase Auth"]
   end
 
-  %% --- Flows ---
+  subgraph ExternalServices["External APIs"]
+    StripeAPI["Stripe API"]
+    GelatoAPI["Gelato API"]
+    GoogleWorkspace["Google Workspace (SMTP)"]
+    GCP_OAuth["GCP OAuth"]
+    SecretManager[("Google Secret Manager")]
+  end
 
-  %% DEPLOYMENT & INITIALIZATION
-  SecretManager -- "Injects Env Vars (PRIVATE_KEY, ...)" --> CloudRun
-  %% CloudRun -- "On Start" --> FirebaseAdminModule
+  %% ================= CONNECTIONS =================
 
-  %% Static Page Load (SSG) - Build Time
-  NextServerBuild --> SSGPageGen
-  SSGPageGen -- "Imports & Uses" --> FirebaseAdminModule
-  FirebaseAdminModule -- "Reads" --> FirestoreDB
-  SSGPageGen -- "Generates" --> StaticAssets
-  User -- "Visits /poet/Wiz" --> Hosting
-  %% Hosting -- "Serves" --> StaticAssets
-  StaticAssets -- "Loads in" --> Browser
-  StaticAssets -- "Hydrates" --> SSGPages
+  %% 1. INITIALIZATION
+  SecretManager -- "Injects Secrets" --> CloudRun
 
-  %% SSR Page Load (Star Page) - Runtime
-  User -- "Visits /star/123" --> Hosting
-  Hosting -- "Rewrites SSR/API to" --> NextServerRuntime
-  NextServerRuntime -- "Renders Page" --> SSRPageGen
-  SSRPageGen -- "Imports & Uses" --> FirebaseAdminModule
-  FirebaseAdminModule -- "Reads" --> FirestoreDB
-  SSRPageGen -- "Returns HTML" --> NextServerRuntime
-  NextServerRuntime -- "Sends HTML" --> Browser
-
-  %% Home Page Client Interaction (Search)
-  User -- "Searches on Home" --> HomePageClient
-  HomePageClient -- "Calls API" --> ApiSearch
-  ApiSearch -- "Imports & Uses" --> FirebaseAdminModule
-  FirebaseAdminModule -- "Reads Nicknames" --> FirestoreDB
-  ApiSearch -- "Returns JSON" --> HomePageClient
-  HomePageClient -- "Updates UI" --> User
-
-  %% Authentication Flow (GSI & App Check)
+  %% 2. USER & BROWSER INTERACTION (Auth Loop)
   User -- "Clicks Sign In" --> HeaderClient
-  HeaderClient -- "Triggers GSI" --> GSI
-  GSI -- "Checks Origin vs" --> GCP_OAuth
-  GSI -- "Callback with Credential" --> FirebaseClientSDK
-  FirebaseClientSDK -- "Verifies via" --> FirebaseAppCheck
-  FirebaseAppCheck -- "Checks Domain vs" --> GCP_reCAPTCHA
-  FirebaseClientSDK -- "signInWithCredential" --> FirebaseAuthBackend
-  FirebaseAuthBackend -- "Returns User" --> FirebaseClientSDK
-  FirebaseClientSDK -- "Updates" --> AuthContext
-  AuthContext -- "Notifies" --> HeaderClient & DashboardPageClient
+  HeaderClient -- "Triggers" --> GSI
+  GSI -- "Validates Origin" --> GCP_OAuth
+  GSI -- "Returns Credential" --> FirebaseClientSDK
+  FirebaseClientSDK -- "Verifies Client" --> FirebaseAppCheck
+  FirebaseClientSDK -- "Signs In" --> FirebaseAuthBackend
+  FirebaseClientSDK -- "Updates State" --> AuthContext
+  AuthContext -- "Provides User" --> HeaderClient
+  AuthContext -- "Protects Route" --> DashboardPageClient
 
-  %% Haikucard Generation Flow
-  User -- "Clicks Generate PNG" --> DashboardPageClient
-  DashboardPageClient -- "Calls API with Token & Options" --> ApiGeneratePng
-  ApiGeneratePng -- "Imports & Uses" --> FirebaseAdminModule
-  FirebaseAdminModule -- "Verifies Token & Reads Haiku" --> FirebaseAuthBackend & FirestoreDB
-  ApiGeneratePng -- "Returns PNG Blob" --> DashboardPageClient
-  DashboardPageClient -- "Updates UI (shows download link)" --> User
+  %% 3. PAGE RENDERING FLOWS
+  User -- "Visits /poet/..." --> StaticAssets
+  StaticAssets -- "Hydrates" --> SSGPages
+  SSGPages -- "Displays Content" --> User
+
+  User -- "Visits /star/..." --> Hosting
+  Hosting -- "Rewrites to" --> SSRPageGen
+  SSRPageGen -- "Reads Data" --> FirebaseAdminModule
+  SSRPageGen -- "Returns HTML" --> User
+
+  %% 4. CLIENT COMPONENT ACTIONS
+  User -- "Searches" --> HomePageClient
+  HomePageClient -- "Fetch" --> ApiSearch
+  ApiSearch -- "Query" --> FirebaseAdminModule
   
-  %% Dashboard Data Fetch Flow
-  User -- "Navigates to /dashboard" --> DashboardPageClient
-  DashboardPageClient -- "Gets ID Token from" --> FirebaseClientSDK
-  DashboardPageClient -- "Calls APIs" --> ApiNickname & ApiFollowing & ApiFollowers
+  User -- "Views Dashboard" --> DashboardPageClient
+  DashboardPageClient -- "Fetch Profile" --> ApiNickname
+  ApiNickname -- "Read Profile" --> FirebaseAdminModule
 
-  %% API Route Flow (Nickname Example)
-  ApiNickname -- "Imports & Uses" --> FirebaseAdminModule
-  FirebaseAdminModule -- "Verifies Token & Reads DB" --> FirebaseAuthBackend & FirestoreDB
-  ApiNickname -- "Returns data" --> DashboardPageClient
+  DashboardPageClient -- "Fetch Network" --> ApiFollowing & ApiFollowers
+  ApiFollowing & ApiFollowers -- "Proxy Auth" --> FirebaseAdminModule
+  ApiFollowing & ApiFollowers -- "Proxy Request" --> ProxyFunctions
+  ProxyFunctions -- "Read DB" --> FirestoreDB
+
+  %% 5. PRINT STUDIO & ORDER CREATION
+  User -- "Customizes Card" --> DashboardPageClient
+  DashboardPageClient -- "Generate Preview" --> ApiGeneratePng
+  ApiGeneratePng -- "Upload Asset" --> FirebaseAdminModule
   
-  %% API Route Flow (Following Example - Proxy)
-  ApiFollowing -- "Imports & Uses" --> FirebaseAdminModule
-  ApiFollowing -- "Calls (HTTP POST)" --> CloudFunctions
-  CloudFunctions -- "Verifies Token & Reads DB" --> FirebaseAuthBackend & FirestoreDB
-  CloudFunctions -- "Returns results" --> ApiFollowing
+  DashboardPageClient -- "Create Order" --> ApiCreateOrder
+  ApiCreateOrder -- "Generate & Upload" --> FirebaseAdminModule
+  ApiCreateOrder -- "Write Order" --> FirebaseAdminModule
 
-  %% Final UI Update
-  DashboardPageClient -- "Updates UI" --> User
+  %% 6. PAYMENT FLOW
+  DashboardPageClient -- "Pay" --> ApiCreatePayment
+  ApiCreatePayment -- "Calculate Tax" --> StripeAPI
+  ApiCreatePayment -- "Update Order" --> FirebaseAdminModule
+
+  %% 7. WEBHOOKS (INBOUND)
+  StripeAPI -- "Payment Succeeded" --> ApiStripeWebhook
+  ApiStripeWebhook -- "Verify & Update" --> FirebaseAdminModule
+  
+  GelatoAPI -- "Status Update" --> ApiGelatoWebhook
+  ApiGelatoWebhook -- "Verify & Update" --> FirebaseAdminModule
+
+  %% 8. FULFILLMENT LOOP (ASYNC)
+  FirebaseAdminModule -- "Writes/Updates" --> FirestoreDB
+  FirebaseAdminModule -- "Uploads/Reads" --> StorageBucket
+
+  FirestoreDB -- "Trigger (Paid)" --> OnOrderPaid
+  OnOrderPaid -- "Create Order (v4)" --> GelatoAPI
+  
+  FirestoreDB -- "Trigger (Mail Doc)" --> EmailExt
+  EmailExt -- "Send SMTP" --> GoogleWorkspace
+  GoogleWorkspace -- "Email Notification" --> User
 
   %% Styles
   style Browser fill:#E8F0FE,stroke:#4285F4,stroke-width:2px
   style ProductionEnvironment fill:#f8f8ff,stroke:#4b0082,stroke-width:2px
   style BackendServices fill:#FFF7E6,stroke:#FFA900,stroke-width:2px
-  style GoogleAuthServices fill:#FFEFE6,stroke:#FF5733,stroke-width:1px
-  style ClientComponents fill:#fff
-  style ServerBuild fill:#eee
-  style ServerRuntime fill:#ddd
-  style FirebaseAdminModule fill:#E6F4EA,stroke:#34A853,stroke-width:2px
+  style ExternalServices fill:#E0F2F1,stroke:#009688,stroke-width:2px
+  
+  style ApiGeneratePng fill:#ffecb3,stroke:#ffa000
+  style ApiCreateOrder fill:#ffecb3,stroke:#ffa000
+  style ApiCreatePayment fill:#ffecb3,stroke:#ffa000
+  style ApiStripeWebhook fill:#dcedc8,stroke:#689f38
+  style ApiGelatoWebhook fill:#dcedc8,stroke:#689f38
 ```
 
 ---
-## 3. Core Architecture & Services
-
-The Haikuverse Public Gallery is built on a modern, SEO-first technology stack, leveraging the **Next.js** framework and deploying to **Firebase Hosting**. The `frameworksBackend` feature is enabled, which deploys all server-side logic (API Routes, SSR) to a scalable **Google Cloud Run** service. The table below provides a high-level overview of the key technologies employed.
-
-| Layer                | Technology / Service                             | Purpose                                       |
-| :------------------- | :----------------------------------------------- | :-------------------------------------------- |
-| **Web Framework**    | Next.js (App Router), React, TypeScript          | UI, Routing, SSG/SSR, API Routes              |
-| **Styling**          | CSS Modules                                      | Component-scoped styling                      |
-| **Image Composition**| **sharp** (Node.js)                              | High-performance server-side image processing |
-| **Client Auth**      | Firebase Auth SDK, Google Sign-In (GSI), Context | User login, session management                |
-| **Client Security**  | Firebase App Check (reCAPTCHA Enterprise)        | Verifying client integrity                    |
-| **Server Backend**   | **Google Cloud Run** (via Firebase)              | Hosts all server-side Next.js logic           |
-| **Server Auth/Data** | **Firebase Admin SDK** (Node.js)                 | Secure data fetching (SSG/SSR/API)            |
-| **Database**         | Cloud Firestore                                  | Storing all core data                         |
-| **Server Secrets**   | **Google Secret Manager**                        | Securely injects credentials into Cloud Run   |
-| **API Layer**        | Next.js API Routes                               | Secure endpoints for client data fetching     |
-| **Hosting**          | Firebase Hosting                                 | Serves static assets, routes backend requests |
+| Layer               | Technology / Service                      | Purpose                                            |
+| :------------------ | :---------------------------------------- | :------------------------------------------------- |
+| **Web Framework**   | Next.js (App Router), React, TypeScript   | UI, Routing, SSG/SSR, API Routes                   |
+| **Styling**         | CSS Modules                               | Component-scoped styling                           |
+| **Image Engine**    | `sharp` & `opentype.js`                   | Server-side generation of 300 DPI print assets     |
+| **E-Commerce**      | Stripe (Payment Elements & Tax)           | Payments, Apple/Google Pay, & Auto-Tax calculation |
+| **Fulfillment**     | Gelato API v4                             | Automated print-on-demand manufacturing            |
+| **Notifications**   | Firebase Extension (Trigger Email)        | Transactional emails via Google Workspace SMTP     |
+| **Client Auth**     | Firebase Auth SDK, Google Sign-In (GSI)   | User login & session management                    |
+| **Client Security** | Firebase App Check (reCAPTCHA Enterprise) | Verifying client integrity                         |
+| **Server Backend**  | Google Cloud Run (via Firebase)           | Hosts all server-side Next.js logic                |
+| **Database**        | Cloud Firestore                           | Core data, Order history, & Tax Ledger             |
+| **Object Storage**  | Google Cloud Storage                      | Hosting full-bleed blueprints & email previews     |
+| **Server Secrets**  | Google Secret Manager                     | Secure injection of Stripe/Gelato keys             |
+| **Hosting**         | Firebase Hosting                          | Serves static assets, routes backend requests      |
 
 The following sections provide a detailed breakdown of the application's core components.
 
@@ -255,7 +276,7 @@ This layer manages the connection to backend services and enforces security, run
 * **Secure Credentials:** In production, server-side credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are **injected securely from Google Secret Manager** into the Cloud Run environment at deploy time. This is configured in `firebase.json` using the `secretEnvironmentVariables` block.
 * **API Routes (`src/app/api/`):** All API routes have been refactored to **import the centralized `db` and `auth` instances** from `firebaseAdmin.ts`. This ensures they all use the single, correctly authenticated Admin SDK instance.
 * **Data Fetching Service (`src/lib/firebaseService.ts`):** Centralizes reusable data-fetching functions (e.g., `getAllPoets`, `getStarById`) used by Server Components during SSG.
- * **Server-Side Image Generation:** A key API route, `/api/print/generate-png`, leverages the **`sharp`** library for high-performance image processing and **`opentype.js`** for precise text measurement. It composites artwork, dynamically-sized haiku text with embedded fonts, and user-selected backgrounds onto a transparent canvas, producing a print-ready 300 DPI PNG with true transparency.
+* **Server-Side Image Generation:** A key API route, `/api/print/generate-png`, leverages the **`sharp`** library for high-performance image processing and **`opentype.js`** for precise text measurement. It composites artwork, dynamically-sized haiku text with embedded fonts, and user-selected backgrounds onto a transparent canvas, producing a print-ready 300 DPI PNG with true transparency.
 
 ---
 ## 4. Security, Testing, and Setup
@@ -272,6 +293,9 @@ The gallery employs a multi-layered security approach, combining server-side saf
     * This Admin SDK is used by all server-side code (SSG, API Routes) for data fetching and token verification.
     * **In Production:** Credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are securely injected into the Cloud Run environment from **Google Secret Manager** at deploy time, as configured in `firebase.json`.
     * **In Development:** Credentials are read from local `.env.local` variables.
+
+* **Webhook Integrity:**
+    * Incoming webhooks from **Stripe** and **Gelato** are cryptographically verified using a shared secret (`STRIPE_WEBHOOK_SECRET`, `GELATO_WEBHOOK_SECRET`) to ensure requests originate from the legitimate payment and fulfillment providers.
 
 * **Client-Side Security (Client SDK & App Check):**
     * User authentication is handled client-side via the **Firebase Authentication Client SDK** and **Google Sign-In (GSI)**.
@@ -328,30 +352,40 @@ To set up and run this project locally, follow these steps:
         * Generate a new **service account JSON key** from Google Cloud (IAM & Admin > Service Accounts > Your Admin SDK Account > Keys > Add Key).
         * Copy the values into the `.env.local` file. **IMPORTANT:** The `PRIVATE_KEY` value must be a single-line string with `\n` characters replacing the newlines.
 ```bash
-        # Server-Side (Admin SDK)
-        PROJECT_ID="haiku-bot-advanced"
-        CLIENT_EMAIL="firebase-adminsdk-fbsvc@haiku-bot-advanced.iam.gserviceaccount.com"
-        PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvg...Your...Key...Here...\n...More...Key...\n-----END PRIVATE KEY-----\n"
+    # Server-Side (Admin SDK)
+    PROJECT_ID="haiku-bot-advanced"
+    CLIENT_EMAIL="firebase-adminsdk-fbsvc@haiku-bot-advanced.iam.gserviceaccount.com"
+    PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvg...Your...Key...Here...\n...More...Key...\n-----END PRIVATE KEY-----\n"
 ```
-    * **Server-Side Variables (Cloud Function URLs):**
+
+* **Server-Side Variables (Cloud Function URLs):**
 ```bash
-        GET_FOLLOWING_DETAILS_URL="[https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowingDetails](https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowingDetails)"
-        GET_FOLLOWERS_DETAILS_URL="[https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowersDetails](https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowersDetails)"
+    GET_FOLLOWING_DETAILS_URL="[https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowingDetails](https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowingDetails)"
+    GET_FOLLOWERS_DETAILS_URL="[https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowersDetails](https://us-central1-haiku-bot-advanced.cloudfunctions.net/getFollowersDetails)"
 ```
-    * **Client-Side Variables (Firebase Client SDK & App Check):**
-        * Get these values from your **Firebase Project Settings > Your Web App** ("Haikuverse Gallery (web)").
-        * Get the **reCAPTCHA Site Key** from the **Google Cloud Console > reCAPTCHA Enterprise**.
+
+* **Server-Side Variables (E-Commerce Secrets):**
+    * Add your **Test Mode** keys for local development.
+```Bash
+    STRIPE_SECRET_KEY="sk_test_..."
+    STRIPE_WEBHOOK_SECRET="whsec_..."
+    GELATO_WEBHOOK_SECRET="your_gelato_webhook_secret"
+```
+
+* **Client-Side Variables (Firebase Client SDK & App Check):**
+    * Get these values from your **Firebase Project Settings > Your Web App** ("Haikuverse Gallery (web)").
+    * Get the **reCAPTCHA Site Key** from the **Google Cloud Console > reCAPTCHA Enterprise**.
 ```bash
-        # Client-Side (MUST start with NEXT_PUBLIC_)
-        NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSy..."
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="haiku-bot-advanced.firebaseapp.com"
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID="haiku-bot-advanced"
-        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="haiku-bot-advanced.firebasestorage.app"
-        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
-        NEXT_PUBLIC_FIREBASE_APP_ID="1:...:web:..."
-        NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-..."
-        NEXT_PUBLIC_RECAPTCHA_SITE_KEY="6Le0Lowr...YourSiteKey..."
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID="9450815...apps.googleusercontent.com"
+    # Client-Side (MUST start with NEXT_PUBLIC_)
+    NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSy..."
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="haiku-bot-advanced.firebaseapp.com"
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID="haiku-bot-advanced"
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="haiku-bot-advanced.firebasestorage.app"
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+    NEXT_PUBLIC_FIREBASE_APP_ID="1:...:web:..."
+    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="G-..."
+    NEXT_PUBLIC_RECAPTCHA_SITE_KEY="6Le0Lowr...YourSiteKey..."
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID="9450815...apps.googleusercontent.com"
 ```
 
 4.  **Run the Development Server:**
@@ -374,9 +408,15 @@ Deploying to production requires one-time setup for credentials and authorized d
 
 1. **Configure Server Secrets (Google Secret Manager):**
     * Go to **Google Cloud Console > Security > Secret Manager**.
-    * Create three secrets: `GALLERY_FIREBASE_PROJECT_ID`, `GALLERY_FIREBASE_CLIENT_EMAIL`, and `GALLERY_FIREBASE_PRIVATE_KEY`.
-    * **CRITICAL:** For the `PRIVATE_KEY` secret, paste the **raw, multi-line** key value directly from the **downloaded service account JSON file**.
-    * Grant the project's **Cloud Run service account** the **"Secret Manager Secret Accessor"** role for each of these secrets.
+    * Create the following secrets (ensure you use Live Mode keys for Stripe):
+        * `GALLERY_FIREBASE_PROJECT_ID`
+        * `GALLERY_FIREBASE_CLIENT_EMAIL`
+        * `GALLERY_FIREBASE_PRIVATE_KEY` (Raw, multi-line key)
+        * `STRIPE_SECRET_KEY`
+        * `STRIPE_WEBHOOK_SECRET`
+        * `STRIPE_PUBLISHABLE_KEY`
+        * `GELATO_WEBHOOK_SECRET`
+    * Grant the project's Cloud Run service account the **"Secret Manager Secret Accessor"** role for each of these secrets.
 
 2. **Configure `firebase.json`:**
     * Update your `firebase.json` to link the secrets to the Cloud Run environment and set the memory:
@@ -386,7 +426,11 @@ Deploying to production requires one-time setup for credentials and authorized d
       "secretEnvironmentVariables": [
         { "key": "PRIVATE_KEY", "secret": "GALLERY_FIREBASE_PRIVATE_KEY" },
         { "key": "CLIENT_EMAIL", "secret": "GALLERY_FIREBASE_CLIENT_EMAIL" },
-        { "key": "PROJECT_ID", "secret": "GALLERY_FIREBASE_PROJECT_ID" }
+        { "key": "PROJECT_ID", "secret": "GALLERY_FIREBASE_PROJECT_ID" },
+        { "key": "STRIPE_SECRET_KEY", "secret": "STRIPE_SECRET_KEY" },
+        { "key": "STRIPE_WEBHOOK_SECRET", "secret": "STRIPE_WEBHOOK_SECRET" },
+        { "key": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "secret": "STRIPE_PUBLISHABLE_KEY" },
+        { "key": "GELATO_WEBHOOK_SECRET", "secret": "GELATO_WEBHOOK_SECRET" }
       ]
     }
 ```
@@ -404,40 +448,71 @@ Deploying to production requires one-time setup for credentials and authorized d
 ---
 ## 5. Design Philosophy & Production Architecture
 
-The Haikuverse Public Gallery embodies a dual mission, extending the core application's **"Designed for Humans"** philosophy. It serves as both a public, discoverable archive optimized for SEO and a personalized web portal for authenticated members. Architectural decisions balance the need for organic user acquisition via search engines with providing a seamless, low-friction authenticated experience for the existing community.
+The Haikuverse Public Gallery is not just a website; it is an extension of the **"Designed for Humans"** philosophy that governs the entire Fancyland ecosystem. It serves two distinct masters: the **public web** (which demands speed and SEO) and the **authenticated subscriber** (who demands privacy, security, and tangible value).
 
 ### 5.1 An Open Ecosystem for Creators
 
-A core tenet of the Haikuverse is to create an open ecosystem that empowers and delights creators by giving them multiple channels to share their work. While the native Android app is optimized for quick, social sharing of "haikucards," the Public Gallery extends this philosophy by providing high-fidelity, permanent artifacts.
+A core tenet of the Haikuverse is to create an ecosystem that empowers creators by giving them multiple channels to share their work. While the native Android app is optimized for ephemeral social sharing, the Public Gallery provides high-fidelity, permanent artifacts.
 
-The **Haikucard Print Studio** is the flagship of this strategy. By giving subscribers the ability to generate magnificent, high-resolution PNGs, we are giving them true ownership of their digital masterpieces. These files are not just for viewing; they are print-ready assets designed for personal use and, eventually, to be seamlessly funneled into a cost-effective **print-on-demand service** for physical products like postcards and mugs.
+The **Haikucard Print Studio** is the flagship of this strategy. By giving subscribers the ability to generate magnificent, high-resolution PNGs, we are giving them true ownership of their digital masterpieces. We do not lock these assets behind a walled garden. Users can download them for free or use our integrated service to manufacture them. This multi-channel approach—from social shares to physical products—is designed to foster a vibrant ecosystem where digital art becomes tangible reality.
 
-This multi-channel approach—from ephemeral social shares in-app to permanent digital artifacts and physical products on the web—is designed to create delight and foster a vibrant ecosystem. Public content draws new users in, while authenticated members are rewarded with powerful tools that transform their creations into tangible art, ensuring that there are always new and exciting ways to share their voice.
+### 5.2 The "Clump Factory" Pattern: Financial Integrity
 
-### 5.2 Hybrid Architecture: Balancing SSG, SSR, and Client Interactivity
+In building the e-commerce engine, we rejected the standard "shopping cart" model in favor of a **"Clump Factory"** architecture (`/api/orders/create`).
 
-A key architectural choice was building the gallery with **Next.js** and deploying it to **Firebase Hosting** with the `frameworksBackend` feature. This runs the entire Next.js application (including server-side logic) on a **Google Cloud Run** service, allowing for a sophisticated hybrid rendering model. Core discovery pages like poet portfolios (`/poet/[nickname]`) and constellation galleries (`/constellation/[name]`) use **Static Site Generation (SSG)**. This pre-renders static HTML at build time, providing semantic content that is perfectly indexable by search engines and loads instantly. Individual star pages (`/star/[id]`) are rendered on-demand (dynamic) to ensure data like like counts is always fresh, while pages requiring user interaction (like the Homepage and Dashboard) are rendered as Client Components using **`"use client";`** to provide a fast, app-like interactive experience.
+In a standard cart, prices and product details are often re-calculated at checkout, leading to potential race conditions or discrepancies between what the user sees and what is charged. Our "Clump Factory" creates an **immutable snapshot** of the order—including the specific shipping address, the calculated tax, the exact price, and the generated artwork URLs—*before* the payment intent is even created.
 
-### 5.3 A Secure & Resilient Backend Infrastructure
+This "Clump" (the `pending_payment` document) acts as a single source of truth. The payment processor (Stripe) and the fulfillment provider (Gelato) both read from this frozen record. This ensures that **what the user agrees to pay is exactly what is charged**, and **what the user sees on screen is exactly what is printed**, eliminating "bait-and-switch" bugs entirely.
 
-The production environment runs reliably on a **Google Cloud Run** service managed by Firebase. The core of the backend is a centralized **Firebase Admin SDK** (`src/lib/firebaseAdmin.ts`), initialized using a **singleton pattern** to ensure a single, performant connection to Firebase services. In production, server-side credentials are securely injected into the Cloud Run environment from **Google Secret Manager**, as configured in `firebase.json`, which also provisions the service with **`"memory": "1GiB"`** to ensure the Next.js server has enough resources for server-side rendering.
+### 5.3 The "Architecture Tax": Dual-Asset Manufacturing
 
-### 5.4 Robust Authentication (GSI & App Check)
+We made a deliberate choice to pay an "Architecture Tax" to improve the user experience. Instead of generating a single image file to serve both the user and the printer, we implemented a **Dual-Asset Pipeline**.
 
-Integrating Google Sign-In on a custom domain with App Check required solving a complex chain of security errors. The final, secure solution required authorizing the production URL (`https://haikuverse-gallery.web.app`) in three distinct places: first, in the **Firebase Console** by registering the reCAPTCHA key to the web app; second, in the **GCP OAuth Client ID's** "Authorized JavaScript origins" (to fix `origin_mismatch`); and third, in the **reCAPTCHA Enterprise Key's** "Domains" list (to fix `appCheck/recaptcha-error`). This multi-pronged configuration ensures both Google's sign-in service and Firebase's App Check service recognize the deployed domain as legitimate.
+* **The Blueprint (For the Machine):** We generate a raw, 300 DPI, full-bleed CMYK-compatible PNG with square corners. This file is ugly to look at but perfect for Gelato’s cutting machines, ensuring no white edges appear on the final card.
+* **The Preview (For the Human):** We simultaneously generate a cropped, RGB-optimized PNG with rounded corners that mimics the physical die-cut card.
 
-### 5.5 Performance & Optimization
+By separating these concerns in `imageService.ts`, we ensure the customer sees a beautiful "product shot" in their email, while the manufacturer gets a technically perfect file. This reduces print errors and increases customer trust.
 
-The site uses the Next.js `<Image>` component for all content, with `remotePatterns` configured for Firebase Storage (`storage.googleapis.com` and `firebasestorage.googleapis.com`). Low-resolution, pixelated avatars on poet pages were fixed by adding a `sizes="16rem"` prop to the avatar's `<Image>` component, correctly informing Next.js to fetch a high-quality image. The entire project was downgraded to the stable **Next.js 14** and **React 18** stack to resolve a critical, persistent TypeScript build error, and the codebase now passes all linting and type checks without workarounds.
+### 5.4 Privacy by Design: The Janitor Protocol
 
-### 5.6 Data Freshness & Caching Strategy
-A core challenge was solving the "stale data" problem inherent with static site generation. Content pre-rendered at build time would not reflect new stars or community activity in Firebase. The solution was to implement **Incremental Static Regeneration (ISR)** across all public-facing server pages. By exporting revalidate = 3600 from each page, we instruct the Next.js server to serve the fast, cached version while automatically regenerating the page in the background if it's more than an hour old. This one-hour period was a deliberate choice, balancing the need for fresh content against the cost of server resources and Firebase reads, perfectly aligning with the gallery's role as a public archive rather than a real-time feed.
+Aligned with our **Prohumanist** philosophy, we treat user data as a liability, not an asset. We strictly limit the lifespan of Personally Identifiable Information (PII).
 
-### 5.7 Design Principles (Maintainability & User Experience)
+* **Zero-PII Friction:** We use `localStorage` on the client to cache shipping details for the user's convenience. This data never touches our database until the user explicitly clicks "Pay".
+* **The PII Janitor:** We implemented a scheduled Cloud Function (`purgeDeliveredOrders`) that acts as a relentless privacy enforcer. 180 days after an order is delivered—just enough time to handle chargebacks or returns—the Janitor creates an atomic batch operation. It hard-deletes the order record, wipes the email logs, and destroys the print assets from Cloud Storage.
 
-A primary design principle is that the Public Gallery must be a first-class citizen in the **mobile-first Haikuverse ecosystem**. To that end, the entire application has been architected with a responsive, mobile-first styling approach. Layouts are built by default for narrow viewports, ensuring a fast and intuitive experience on phones, and then progressively enhanced for tablets and desktops using media queries. This philosophy is grounded in a modern CSS foundation, including a global `box-sizing` reset in `globals.css`, which guarantees that components are predictable, maintainable, and free from common layout issues like overflow.
+This architecture ensures that Fancyland LLC does not accumulate a toxic "data lake" of user addresses. We keep only what is required for tax compliance (anonymized in the `accounting_ledger`) and nothing more.
 
-The styling architecture is built on **CSS Modules** to guarantee stability. Each component or page is paired with its own `*.module.css` file, generating unique class names that make it impossible for styles to leak and break other components. All database query logic is consolidated into a dedicated **service layer** (`/lib/firebaseService.ts`), allowing UI components to remain clean and making database logic easy to maintain. This design allows the Public Gallery to serve its dual role: for the public, it's a fast, read-only "showroom" designed for SEO and discovery. For authenticated members, it transforms into a personalized web portal, with the **Dashboard** providing a familiar hub and quick access to their community and creator tools—including a revamped **Print Studio** that empowers creators to browse and select from all of their generated masterpieces for any given star.
+### 5.5 Hybrid Rendering: Balancing Speed and Freshness
+
+A key architectural choice was building the gallery with **Next.js** and deploying it to **Firebase Hosting** with the `frameworksBackend` feature. This runs the entire application on a **Google Cloud Run** service, allowing for a sophisticated hybrid rendering model:
+
+* **SSG (Static Site Generation):** Core discovery pages (`/poet`, `/constellation`) are pre-rendered at build time. This provides semantic HTML that is instantly indexable by search engines.
+* **ISR (Incremental Static Regeneration):** To solve the "stale data" problem, we use ISR with a 1-hour revalidation window. This ensures that the gallery reflects new stars and community activity without requiring a full site redeploy, balancing freshness against server costs.
+* **CSR (Client-Side Rendering):** The Dashboard and Print Studio are purely client-side. This allows for a rich, app-like interactive experience where the UI reacts instantly to user input (like changing a card background) without server round-trips.
+
+### 5.6 Robust Security & Compliance
+
+Security is not an addon; it is baked into the infrastructure.
+
+* **Singleton Admin SDK:** We use a singleton pattern (`firebaseAdmin.ts`) to manage server-side connections, preventing memory leaks and ensuring consistent authentication.
+* **Secret Injection:** All sensitive keys (Stripe, Gelato, Firebase Admin) are injected directly from **Google Secret Manager** into the Cloud Run environment at runtime. They never exist in the codebase or the build artifacts.
+* **Active Awareness Compliance:** We integrated legal compliance directly into the UX. The checkout flow uses embedded accordions for Terms and Privacy policies, ensuring "Active Awareness"—users must interact with the agreement layer to proceed, ensuring informed consent without disrupting the purchase flow.
+
+### 5.7 Mobile-First Styling Architecture
+
+Finally, the Public Gallery is a first-class citizen in the mobile-first Haikuverse ecosystem. We utilize **CSS Modules** to scope styles locally to each component, preventing cascade regressions. The layout uses a "mobile-first" media query strategy: the default CSS defines the experience for narrow phone screens (single columns, large touch targets), while `min-width` queries progressively enhance the layout for tablets and desktops (grid views, sticky sidebars). This guarantees that the site is performant and accessible on the devices our users actually use.
+
+### 5.8 Designed for Humans
+
+Ultimately, the architecture of the Haikuverse Public Gallery serves as a manifesto for Human-Centric Engineering, a rejection of the industry's obsession with efficiency at the expense of the user's emotional experience. We deliberately chose to embrace architectural complexity—increasing our own maintenance burden—specifically to ensure simplicity, honesty, and sovereignty for the human on the other side of the screen.
+
+This philosophy is most visible in our decision to pay the "Architecture Tax" of the Dual-Asset Pipeline. A purely logical system would generate a single image file to satisfy the printer, forcing the user to decipher a raw, bleed-edged CMYK schematic filled with crop marks and strange margins. We rejected that path. Instead, we engineered a parallel rendering pipeline solely to generate delight. When a creator opens their "Order Shipped" notification, they are not greeted by a robotic blueprint, but by a beautiful, rounded, high-fidelity visualization of their physical art as it exists in the real world. We accepted the complexity of managing two distinct assets for every order because we believe the software’s job is to bridge the gap between digital imagination and physical arrival, transforming a standard transactional update into a genuine spark of joy and anticipation.
+
+Similarly, the "Clump Factory" was not built merely to solve the technical problem of database race conditions; it was built to solve the human problem of anxiety. In an e-commerce landscape rife with dynamic pricing and hidden fees, the Clump Factory acts as a guarantee of financial integrity. By freezing the asset state, tax calculation, and final price into an immutable snapshot before the transaction begins, we ensure that the price the user sees is the price they pay—transparent, locked, and honest.
+
+Furthermore, the very existence of this Public Gallery is a structural commitment to inclusivity over exclusivity. We rejected the "walled garden" model that demands an app download or a login credential just to experience a moment of beauty. By architecting a high-performance, read-only web layer, we meet curious newcomers exactly where they are—in the browser, on a link shared by a friend, without friction or commitment. This decision transforms the Haikuverse from a closed club into an open agora, ensuring that the poetry experience remains accessible to all, while reserving the deep tools of creation for those ready to take the next step.
+
+Most critically, the "Janitor" protocol embodies our commitment to data hygiene and respect. By treating a user's physical address as a temporary necessity rather than a permanent asset, we operationalized the belief that personal data is something we are privileged to borrow only for the specific moment of fulfillment. We do not build vast data lakes; we build clean rooms. In the Haikuverse ecosystem, technology steps back from being a central authority to become a humble, efficient steward, ensuring that from the first spark of creativity to the final delivery of the physical artifact, the user’s sovereignty and delight remain the undisputed center of gravity.
 
 ---
 ## License
