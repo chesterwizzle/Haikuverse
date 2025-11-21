@@ -1,12 +1,18 @@
-ANDROID APP CLOSED ALPHA TEST COMPLETE!
-* Opt-in period started on 17 Oct 2025.
-* The Haikuverse Public Gallery (companion web app) went live for Alpha Testers on 22 Oct 2025.
-* Alpha Phase 1 testers Feedback and Exit Poll released on 29 Oct 2025.
-* New release for Alpha testers on 3 Nov 2025 updates subscriptional renewal/cancellation logic.
-* Closed Alpha Phase 2 completed on 20 November 2025.
+# Haikuverse
 
-WEB APP RELEASED ON FIREBASE HOSTING FOR CLOSED ALPHA TESTING!
-* Multi-platform accessible with a valid subscription to the Android app.
-* Print Studio e-commerce deployed and will go live for mail-order on 1 December 2025.
+A rich, multi-sensory platform for creative expression, designed for humans.
 
-Contact chesterwizzle@fancyland.net for beta access!
+**Status:** 🚀 **Closed Alpha Complete!**
+
+The Haikuverse Android App and companion Web App have successfully concluded their Closed Alpha phase.
+
+* **17 Oct 2025:** Android App Opt-in period started.
+* **22 Oct 2025:** Haikuverse Public Gallery (companion web app) went live for Alpha Testers on Firebase Hosting.
+* **29 Oct 2025:** Alpha Phase 1 Feedback and Exit Poll released.
+* **03 Nov 2025:** Alpha release update (Subscription renewal/cancellation logic).
+* **20 Nov 2025:** Closed Alpha Phase 2 completed.
+
+**Upcoming:**
+* **01 Dec 2025:** Print Studio e-commerce goes live for mail-order. (The Web App is currently multi-platform accessible with a valid Android subscription).
+
+To get beta tester access, please contact: **chesterwizzle@fancyland.net**
