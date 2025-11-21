@@ -5,10 +5,8 @@ ANDROID APP CLOSED ALPHA TEST COMPLETE!
 * New release for Alpha testers on 3 Nov 2025 updates subscriptional renewal/cancellation logic.
 * Closed Alpha Phase 2 completed on 20 November 2025.
 
-WEB APP RELEASED ON FIREBASE HOSTING FOR CLOSED ALPHA TEST!
+WEB APP RELEASED ON FIREBASE HOSTING FOR CLOSED ALPHA TESTING!
 * Multi-platform accessible with a valid subscription to the Android app.
 * Print Studio e-commerce deployed and will go live for mail-order on 1 December 2025.
 
 Contact chesterwizzle@fancyland.net for beta access!
-
-https://www.fancyland.net/
