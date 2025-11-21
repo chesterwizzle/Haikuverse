@@ -2,12 +2,12 @@
 
 A rich, multi-sensory platform for creative expression, designed for humans.
 
-**Status:** 🚀 **Closed Alpha Now Live!**
+**Status:** 🚀 **Closed Alpha Now Complete!**
 
-* The Haikuverse Closed Alpha test for the Android app began on **October 17, 2025**. Haikuverse requires a valid subscription from the Google Play Store. 
-* The Haikuverse Public Gallery went live on Firebase hosting as of **October 22, 2025.** Only subscribers have access to the personalized dashboard.
+* The Haikuverse Closed Alpha test for the Android app began on **October 17, 2025** and compeleted on **November 20, 2025**. Haikuverse requires a valid subscription from the Google Play Store. 
+* The Haikuverse Public Gallery went live on Firebase hosting as of **October 22, 2025.** The Print Studio e-commerce will be live for mail-orders in U.S. and Canada on **1 December 2025**. Only subscribers have access to e-commerce through the personalized dashboard. 
 
-To join the Closed Alpha, please contact: **chesterwizzle@fancyland.net**
+To get beta tester access, please contact: **chesterwizzle@fancyland.net**
 
 ---
 ## Key Links
@@ -26,8 +26,8 @@ Haikuverse is a creative ecosystem built on a **"Designed for Humans"** philosop
 
 The ecosystem consists of two primary components:
 
-1.  **The Haikuverse Application (Flutter):** The core multi-sensory experience. This Flutter app (for Android and web) is where users co-create with AI partners (**Gemini**, **Imagen 3**, and **Text-to-Speech**). They can publish their work and explore the community through a unique, procedurally generated 2D "constellation" graph.
-2.  **The Public Gallery (Next.js):** The public-facing, SEO-optimized "front door" for discovery. This Next.js web portal uses **Incremental Static Regeneration (ISR)** to create fast, indexable poet portfolios and constellation galleries, combining the performance of static generation with automatic data freshness.
+1.  **The Haikuverse Application (Flutter):** The core multi-sensory experience. This Flutter app (for Android and web) is where users co-create with AI partners (**Gemini**, **Imagen**, and **Text-to-Speech**). They can publish their work and explore the community through a unique, procedurally generated 2D "constellation" graph.
+2.  **The Public Gallery (Next.js):** A dual-purpose platform serving as both the ecosystem's SEO-optimized "front door" and its **Print-on-Demand** E-Commerce Engine. This Next.js web portal leverages **Incremental Static Regeneration (ISR)** to deliver lightning-fast, indexable portfolios for public discovery, while offering authenticated creators a secure Print Studio to transform their digital works into physical artifacts.
 
 ## Detailed Documentation
 
