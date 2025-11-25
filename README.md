@@ -5,7 +5,7 @@ A rich, multi-sensory platform for creative expression, designed for humans.
 **Status:** 🚀 **Approved for Production Release!**
 
 * Haikuverse for Android is approved by Google Play Store for Production! Global roll-out begins **December 1, 2025.** Haikuverse requires a valid subscription from the Google Play Store.
-* The Haikuverse Public Gallery went live on Firebase hosting as of **October 22, 2025.** The subscriber's Print Studio will be live for mail-orders in U.S. and Canada on **December 1, 2025**. 
+* The Haikuverse Public Gallery went live on Firebase hosting as of **October 22, 2025.** The subscriber's Print Studio will be live for mail-orders in U.S. and Canada on **December 1, 2025**
 
 **Beta Access:** To join the final testing wave, please contact: chesterwizzle@fancyland.net
 
@@ -16,6 +16,7 @@ A rich, multi-sensory platform for creative expression, designed for humans.
 | :--- | :--- |
 | **Get the App (Android)** | [https://play.google.com/store/apps/details?id=net.fancyland.haikuverse](https://play.google.com/store/apps/details?id=net.fancyland.haikuverse&pcampaignid=web_share) |
 | **Haikuverse Public Gallery** | [https://haikuverse-gallery.web.app/](https://haikuverse-gallery.web.app/) |
+| **Community (Reddit)** | [https://www.reddit.com/r/HaikuverseRealms](https://www.reddit.com/r/HaikuverseRealms) |
 | **Official Company Site** | [https://www.fancyland.net/](https://www.fancyland.net/) |
 | **Haikuverse Support** | [support@fancyland.net](mailto:support@fancyland.net) |
 
@@ -27,8 +28,18 @@ Haikuverse is a creative ecosystem built on a **"Designed for Humans"** philosop
 The ecosystem consists of two primary components:
 
 1.  **The Haikuverse Application (Flutter):** The core multi-sensory experience. This Flutter app (for Android and web) is where users co-create with AI partners (**Gemini**, **Imagen**, and **Text-to-Speech**). They can publish their work and explore the community through a unique, procedurally generated 2D "constellation" graph.
+
 2.  **The Public Gallery (Next.js):** A dual-purpose platform serving as both the ecosystem's SEO-optimized "front door" and its **Print-on-Demand** E-Commerce Engine. This Next.js web portal leverages **Incremental Static Regeneration (ISR)** to deliver lightning-fast, indexable portfolios for public discovery, while offering authenticated creators a secure Print Studio to transform their digital works into physical artifacts.
 
+### Community: r/HaikuverseRealms
+While the main application maintains strict safety guardrails, the **Haikuverse Realms** serves as the official social layer with relaxed moderation for broader creative expression. We are building a **"Trading Card" economy of the imagination!**
+
+* **Share your Haikucards:** Showcase your generated masterpieces.
+* **Trade Prompt Recipes:** Exchange the exact phrasing used to generate specific styles.
+* **Add Your Own Flair:** Post your own original content and discuss related interests.
+* **Explore the Nine Worlds:** Connect with other travelers in the Haikuverse.
+
+---
 ## Detailed Documentation
 
 This repository contains the detailed technical documentation for the entire Haikuverse ecosystem, split into its core components.
