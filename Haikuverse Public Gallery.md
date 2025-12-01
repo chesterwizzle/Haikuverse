@@ -518,6 +518,7 @@ Security is not an addon; it is baked into the infrastructure.
 - **Secret Injection:** All sensitive keys (Stripe, Gelato, Firebase Admin) are injected directly from **Google Secret Manager** into the Cloud Run environment at runtime. They never exist in the codebase or the build artifacts.
 - **Active Awareness Compliance:** We integrated legal compliance directly into the UX. The checkout flow uses embedded accordions for Terms and Privacy policies, ensuring "Active Awareness"—users must interact with the agreement layer to proceed, ensuring informed consent without disrupting the purchase flow.
 - **The "Trust but Verify" Gatekeeper:** We recognized that the transition from client-side Firestore rules to server-side Admin SDK logic creates a potential security gap. We closed this by implementing manual ownership verification logic in every write-capable API route, effectively re-implementing RLS (Row-Level Security) at the application layer to prevent unauthorized resource manipulation via IDOR.
+- **Asset Integrity (Explicit Authority):** To prevent "bait-and-switch" discrepancies between the UI and the backend, we enforce an **Explicit Authority** pattern. The client must explicitly request a specific asset URL, and the server validates that this specific URL belongs to the authenticated user's underlying Firestore document before processing any generation or order requests.
 
 ### 5.7 Mobile-First Styling Architecture
 
