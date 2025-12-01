@@ -1154,6 +1154,11 @@ The initial fix—creating manual mocks to bypass the faulty generator—led to 
 
 Finally, even with the code compiling, new widget tests failed due to UI rendering issues. These were ultimately traced to `RenderFlex` overflows (fixed by setting a larger test screen size) and `pumpAndSettle` timeouts caused by infinitely animating widgets. This journey from a simple dependency upgrade to a multi-layered series of build, compilation, and test-environment failures underscored the necessity of meticulous, platform-aware engineering.
 
+### The Launch Day Decision: Prioritizing UX Over Schedule
+On the morning of the global launch, mere hours after the final 10 PM release candidate was built, a critical user-facing anomaly was discovered during manual regression testing on physical Android hardware. While the internal SharingTab UI updated correctly, the native Android share sheet—specifically in receiving apps like Google Chat—persisted in displaying stale preview images from previous shares. The root cause was identified as aggressive URI caching by external applications; because the app utilized a static filename (`haiku_card.png`) for temporary storage, receiving apps ignored the updated pixel data in favor of their own cached thumbnails.
+
+This presented a high-stakes engineering dilemma: adhere to the strict launch schedule with a known, albeit non-fatal, visual bug, or "derail" the pipeline to inject a last-minute hotfix. The decision was made to halt the release. In an application designed to foster viral discovery through "Haiku Cards," a confusing sharing experience is unacceptable. A fix was implemented to enforce dynamic file naming (e.g., `haiku_card_{uuid}.png`), effectively "busting" external caches by generating unique URIs for every share event. This decision to rebuild and resubmit on launch day underscores the project's core philosophy: **operational risk is manageable, but compromising user clarity is not.**
+
 ---
 ## License
 
