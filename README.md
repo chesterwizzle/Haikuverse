@@ -2,12 +2,12 @@
 
 A rich, multi-sensory platform for creative expression, designed for humans.
 
-**Status:** 🚀 **Approved for Production Release!**
+**Status:** 🚀 **Production Release!**
 
-* Haikuverse for Android is approved by Google Play Store for Production! Global roll-out begins **December 1, 2025.** Haikuverse requires a valid subscription from the Google Play Store.
+* Haikuverse for Android went live on Google Play Store as of **December 1, 2025.** Haikuverse requires a valid subscription from the Google Play Store.
 * The Haikuverse Public Gallery went live on Firebase hosting as of **October 22, 2025.** The subscriber's Print Studio will be live for mail-orders in U.S. and Canada on **December 1, 2025**
 
-**Beta Access:** To join the final testing wave, please contact: chesterwizzle@fancyland.net
+**Product Reviewer Access:** To obtain a passcode for product review, please contact: chesterwizzle@fancyland.net
 
 ---
 ## Key Links
