@@ -10,13 +10,13 @@ The Haikuverse Public Gallery is a high-performance Next.js web application desi
 
 - **Blazing Fast & Always Fresh:** Leverages Incremental Static Regeneration (ISR) for core content (`/poet/[nickname]`, `/constellation/[name]`). This combines the instant load times of static generation with the ability to automatically refresh data from Firebase in the background, ensuring content like new stars and follower counts stays up-to-date without needing a redeploy.
 - **Interactive Homepage Hub:** Features a dynamic **Zeitgeist Map** highlighting trending community themes and a **Poet Search** bar for easy discovery.
-- **Clear User Acquisition Funnel:** A prominent call-to-action on the main page directs new visitors to the Google Play Store, creating a direct path from discovery to download.
+- **Smart User Acquisition Funnel:** A context-aware call-to-action system intelligently routes users based on authentication status. Subscribers that click on the Print Studio Call to Action are sent directly to their Print Studio, while guests are directed to a dedicated Print Studio Promo page (`/print-studio-promo`). The promo page leverages high-fidelity physical product imagery ("Forge Artifacts") to drive conversion by focusing on the tangible utility of the platform.
 - **Fully Responsive & Mobile-First:** The entire gallery is built with a mobile-first philosophy to align with the Haikuverse ecosystem. All pages, from the interactive homepage to the feature-rich Print Studio, are fully responsive, using a modern CSS architecture that defaults to a clean, single-column layout on phones and scales up gracefully for tablets and desktops.
 - **Dynamic Poet Portfolios:** Every poet gets a unique, shareable, statically-generated page that automatically showcases their bio, high-resolution avatar, owned constellations, and contributions to other constellations.
 - **Immersive Constellation Galleries:** Each constellation has its own dedicated, statically-generated page featuring its fable, lore image, and a gallery of all the stars within it.
 - **Detailed Star Experience:** A server-rendered star page showcases each creation with a high-resolution, optimized image slideshow timed to the cadence of the audio preview and a display for community like counts.
 - **Personalized Member Dashboard:** Logged-in users access a dashboard that calls serverless API routes to display their Haikuverse **nickname** and real-time lists of poets they **follow** and who **follow them**.
-- **Gated Creator Access:** Provides a convenient link to the **Haikuverse Web Creator** and the **Print Studio** for authenticated subscribers.
+- **Value-Driven Gating:** The application architecture employs a psychological "soft gate" for monetization. Instead of a generic paywall, a comprehensive **Benefit Comparison Table** is revealed within the Print Studio flow, clearly differentiating "Guest" vs. "Creator License" tiers. This frames the subscription as a value-add across a broad spectrum of services, including manufacturing premium physical goods rather than just software access.
 - **High-Resolution Print Studio:** A dedicated Print Studio empowers creators to browse their generated images and purchase physical Haikucards.
   - **Server-Side Composition:** Uses the `sharp` library to generate two distinct 300 DPI assets per order: a full-bleed **Blueprint** for the printer and a rounded **Preview** for the user.
   - **Immutable Orders:** Implements a "Clump Factory" pattern (`/api/orders/create`) that snapshot-freezes pricing, shipping data, and print specifications into a `pending_payment` document _before_ the transaction begins, ensuring total data integrity.
@@ -61,10 +61,11 @@ flowchart LR
     direction TB
     User["User Interaction"]
     subgraph ClientComponents ["Client Components (React)"]
-        HomePageClient["Home Page<br>(ZeitgeistClient, PoetSearch)"]
+        HomePageClient["Home Page<br>(ZeitgeistClient, PoetSearch,<br>Smart CTA Logic)"]
         DashboardPageClient["Dashboard Page<br>(HaikucardEditor)"]
         HeaderClient["Header (Auth Aware)"]
         SSGPages["SSG Pages (Hydrated)<br>(Poet, Constellation)"]
+        PrintStudioPromo["Print Studio Promo<br>(Static Landing Page)"]
     end
     AuthContext["AuthContext"]
     FirebaseClientSDK[("Firebase Client SDK")]
@@ -142,11 +143,15 @@ flowchart LR
   FirebaseClientSDK -- "Updates State" --> AuthContext
   AuthContext -- "Provides User" --> HeaderClient
   AuthContext -- "Protects Route" --> DashboardPageClient
+  AuthContext -- "Smart Route" --> HomePageClient
 
   %% 3. PAGE RENDERING FLOWS
   User -- "Visits /poet/..." --> StaticAssets
   StaticAssets -- "Hydrates" --> SSGPages
   SSGPages -- "Displays Content" --> User
+  User -- "Visits /print-studio-promo" --> StaticAssets
+  StaticAssets -- "Hydrates" --> PrintStudioPromo
+  PrintStudioPromo -- "Displays Artifacts" --> User
 
   User -- "Visits /star/..." --> Hosting
   Hosting -- "Rewrites to" --> SSRPageGen
@@ -166,6 +171,10 @@ flowchart LR
   ApiFollowing & ApiFollowers -- "Proxy Auth" --> FirebaseAdminModule
   ApiFollowing & ApiFollowers -- "Proxy Request" --> ProxyFunctions
   ProxyFunctions -- "Read DB" --> FirestoreDB
+
+  %% SMART CTA LOGIC
+  HomePageClient -- "Subscriber CTA" --> DashboardPageClient
+  HomePageClient -- "Guest CTA" --> PrintStudioPromo
 
   %% 5. PRINT STUDIO & ORDER CREATION
   User -- "Customizes Card" --> DashboardPageClient
@@ -214,6 +223,8 @@ flowchart LR
 
 ---
 
+## 3. Core Architecture & Services
+
 | Layer               | Technology / Service                      | Purpose                                            |
 | :------------------ | :---------------------------------------- | :------------------------------------------------- |
 | **Web Framework**   | Next.js (App Router), React, TypeScript   | UI, Routing, SSG/SSR, API Routes                   |
@@ -236,7 +247,7 @@ The following sections provide a detailed breakdown of the application's core co
 
 The application is built using the **Next.js App Router**, which uses a file-based routing system. Folders within the `src/app/` directory define the URL structure of the site.
 
-- **Static Routes:** The root homepage is defined by `src/app/page.tsx`.
+- **Static Routes:** The root homepage (`src/app/page.tsx`) and the promotional landing page (`src/app/print-studio-promo/page.tsx`) define the primary static entry points.
 - **Dynamic Routes:** Pages for individual poets and constellations are created using folders with square brackets, such as `src/app/poet/[nickname]/page.tsx`.
 - **Layouts:** The root layout at `src/app/layout.tsx` defines the shell `<html>` and `<body>` tags that wrap every page, ensuring a consistent base structure and styling.
 - **Client Routes:** The user dashboard (`/dashboard`) is implemented as a client component, dynamically rendering based on authentication state.
@@ -256,7 +267,7 @@ The gallery employs a hybrid rendering approach, optimized for SEO, performance,
 
 Client Components handle user interaction, browser-specific APIs, and state management within the user's browser.
 
-- **Interactivity & Data Fetching:** Components like the `PoetSearch` on the homepage, the `DashboardPage`, and the site `Header` are Client Components. They use React Hooks (`useState`, `useEffect`) to manage local UI state and fetch dynamic data.
+- **Interactivity & Data Fetching:** Components like the `PoetSearch`, the `PrintStudioCTA` (Smart Routing Logic), `DashboardPage`, and the site `Header` are Client Components. They use React Hooks (`useState`, `useEffect`) to manage local UI state and fetch dynamic data.
 - **Authentication State:** A global **`AuthContext`** (`src/context/AuthContext.tsx`) provides application-wide access to the current user's authentication state (`user`, `loading`) via the `useAuth` hook.
 - **Client-Side Firebase:** The **Firebase Client SDK** (`src/lib/firebaseClient.ts`) is initialized for client-side operations:
   - **Firebase Auth:** Manages the sign-in state.
@@ -268,7 +279,7 @@ Client Components handle user interaction, browser-specific APIs, and state mana
 
 The gallery's styling is implemented using **CSS Modules**, a system that scopes CSS locally to each component. This approach was chosen to ensure style encapsulation and prevent class name conflicts.
 
-- **Scoped & Responsive by Default:** Each page or component has its own \*.module.css file (e.g., `PoetPage.module.css`), built with a mobile-first philosophy. The build process automatically generates unique class names, guaranteeing that styles from one component cannot accidentally affect another, while media queries are used to progressively enhance the layout for larger screens.
+- **Scoped & Responsive by Default:** Each page (`PoetPage.module.css`, `PrintStudioPromo.module.css`) and component (`PrintStudioCTA.module.css`) has its own unique style sheet built with a mobile-first philosophy. The build process automatically generates unique class names, guaranteeing that styles from one component cannot accidentally affect another, while media queries are used to progressively enhance the layout for larger screens.
 - **Maintainability:** This architecture creates a clean separation between a component's structure (in the `.tsx` file) and its appearance (in the `.module.css` file), making the codebase easier to read and maintain.
 
 ### 3.5 Backend Integration & Security
@@ -327,6 +338,7 @@ A comprehensive testing strategy is essential for ensuring the gallery is robust
 - **End-to-End (E2E) Testing:** A tool like **Cypress** or **Playwright** will be used to run automated tests on the complete, running application. These tests will simulate a full user journey—navigating from the homepage to a poet page, then to a constellation, and finally to a star—verifying that all pages load correctly and links work as intended.
 - **Context Testing:** The `AuthContext` provider will be tested to ensure it correctly reflects user login/logout states and provides the user object as expected.
 - **API Route Testing:** Next.js API Routes will be tested, potentially using tools like `next-test-api-route-handler` or similar, mocking Firebase Admin functions (`verifyIdToken`, Firestore reads) and fetch calls to Cloud Functions.
+- **Routing Logic Testing:** Verify the `PrintStudioCTA` component correctly routes unauthenticated users to `/print-studio-promo` and authenticated subscribers to `/dashboard`, ensuring the acquisition funnel behaves as architected.
 
 ### 4.3 Setup and Configuration
 
@@ -524,7 +536,11 @@ Security is not an addon; it is baked into the infrastructure.
 
 Finally, the Public Gallery is a first-class citizen in the mobile-first Haikuverse ecosystem. We utilize **CSS Modules** to scope styles locally to each component, preventing cascade regressions. The layout uses a "mobile-first" media query strategy: the default CSS defines the experience for narrow phone screens (single columns, large touch targets), while `min-width` queries progressively enhance the layout for tablets and desktops (grid views, sticky sidebars). This guarantees that the site is performant and accessible on the devices our users actually use.
 
-### 5.8 Designed for Humans
+### 5.8 Artifact-First Marketing Strategy
+
+The application’s user funnel is architected to prioritize the result over the tool. We recognize that users are often fatigued by abstract software subscriptions but value tangible utility. Therefore, the marketing strategy leverages the Public Gallery to showcase high-fidelity physical goods ("Forge Artifacts") as the primary hook. The architecture purposefully delays the full feature breakdown until the specific moment of intent. The clear value proposition—the distinction between a Guest and a Creator—is made discoverable only after the user has mentally committed to the utility of the Print Studio. This psychological framing positions the subscription not as a gate to a "app," but as _a necessary "manufacturing license"_ for the physical artifacts the user has already decided they want.
+
+### 5.9 Designed for Humans
 
 Ultimately, the architecture of the Haikuverse Public Gallery serves as a manifesto for Human-Centric Engineering, a rejection of the industry's obsession with efficiency at the expense of the user's emotional experience. We deliberately chose to embrace architectural complexity—increasing our own maintenance burden—specifically to ensure simplicity, honesty, and sovereignty for the human on the other side of the screen.
 
