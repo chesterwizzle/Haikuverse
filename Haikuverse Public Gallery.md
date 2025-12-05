@@ -20,6 +20,7 @@ The Haikuverse Public Gallery is a high-performance Next.js web application desi
 - **High-Resolution Print Studio:** A dedicated Print Studio empowers creators to browse their generated images and purchase physical Haikucards.
   - **Server-Side Composition:** Uses the `sharp` library to generate two distinct 300 DPI assets per order: a full-bleed **Blueprint** for the printer and a rounded **Preview** for the user.
   - **Immutable Orders:** Implements a "Clump Factory" pattern (`/api/orders/create`) that snapshot-freezes pricing, shipping data, and print specifications into a `pending_payment` document _before_ the transaction begins, ensuring total data integrity.
+  - **Premium Metallic Foil Engine:** A specialized parallel pipeline handles "Gold," "Silver," and "Copper" materials. It generates a manufacturing-grade "Negative Mask" (Black Background/White Knockout) to instruct the printer exactly where to apply foil versus ink, creating a mixed-material artifact with high-contrast matte text inside a metallic footer.
 - **Stripe E-Commerce & Tax Compliance:** Features a full **Stripe** integration with **Payment Elements** (supporting Apple Pay/Google Pay) and robust webhook signature verification.
   - **Automated Tax:** Utilizes `stripe.tax.calculations.create` on the server to calculate sales tax in real-time based on the user's shipping address.
   - **Tax Ledger:** A webhook listener (`/api/stripe/webhook`) atomically records every transaction into a dedicated, anonymized **Firestore Tax Ledger**, separating tax liability from net revenue for GAAP compliance.
@@ -331,14 +332,32 @@ The gallery employs a multi-layered security approach, combining server-side saf
 
 ### 4.2 Testing Strategy
 
-A comprehensive testing strategy is essential for ensuring the gallery is robust, performant, and maintainable. The plan includes:
+The gallery enforces code quality through a robust testing architecture using **Jest** and **React Testing Library**. This establishes a "Safety Net" for business logic and UI interactions, mirroring the high test coverage standards of the native mobile app.
 
-- **Unit Testing:** The service layer functions in `src/lib/firebaseService.ts` will be unit-tested using a framework like **Jest**. This involves mocking the Firebase Admin SDK to verify that our data-fetching functions correctly handle various database responses without making actual database calls.
-- **Component Testing:** Interactive Client Components, such as the `StarSlideshow` and `StarDetailClient`, will be tested with **React Testing Library**. These tests will simulate user interactions (like clicking a play button) and assert that the component's state and appearance update as expected.
-- **End-to-End (E2E) Testing:** A tool like **Cypress** or **Playwright** will be used to run automated tests on the complete, running application. These tests will simulate a full user journey—navigating from the homepage to a poet page, then to a constellation, and finally to a star—verifying that all pages load correctly and links work as intended.
-- **Context Testing:** The `AuthContext` provider will be tested to ensure it correctly reflects user login/logout states and provides the user object as expected.
-- **API Route Testing:** Next.js API Routes will be tested, potentially using tools like `next-test-api-route-handler` or similar, mocking Firebase Admin functions (`verifyIdToken`, Firestore reads) and fetch calls to Cloud Functions.
-- **Routing Logic Testing:** Verify the `PrintStudioCTA` component correctly routes unauthenticated users to `/print-studio-promo` and authenticated subscribers to `/dashboard`, ensuring the acquisition funnel behaves as architected.
+**Running Tests:**
+
+```bash
+# Run all tests once
+npm test
+
+# Run in watch mode (interactive TDD)
+npm run test:watch
+```
+
+Testing Layers:
+
+- **Unit Tests** (`__tests__/lib/`):
+  - **Focus:** Pure business logic, pricing engines, and data transformation (e.g., `products.ts`).
+  - **Goal:** Ensure that critical financial calculations (Stripe tax, Gelato SKU mapping) are mathematically correct and resistant to regression.
+
+- **Component Tests** (`__tests__/components/`):
+  - **Focus:** Interactive UI components (e.g., `HaikucardEditor`).
+  - **Tooling:** React Testing Library (RTL).
+  - **Goal:** Verify user flows—such as toggling between "Gold Foil" and "Standard Ink" or handling loading states—by interacting with the rendered DOM rather than implementation details.
+  - **Configuration Note:** The test environment (`jest.setup.ts`) includes custom polyfills for `fetch`, `TextEncoder`, and `Response` to allow the Firebase Client SDK to initialize correctly within the simulated JSDOM environment.
+
+- **End-to-End (E2E) Testing** (Planned):
+  - Future integration with Playwright to validate the full "Critical Path" (Homepage -> Auth -> Print Studio -> Checkout) in a real browser instance.
 
 ### 4.3 Setup and Configuration
 
@@ -496,14 +515,15 @@ In a standard cart, prices and product details are often re-calculated at checko
 
 This "Clump" (the `pending_payment` document) acts as a single source of truth. The payment processor (Stripe) and the fulfillment provider (Gelato) both read from this frozen record. This ensures that **what the user agrees to pay is exactly what is charged**, and **what the user sees on screen is exactly what is printed**, eliminating "bait-and-switch" bugs entirely.
 
-### 5.3 The "Architecture Tax": Dual-Asset Manufacturing
+### 5.3 The "Architecture Tax": Multi-Asset Manufacturing
 
-We made a deliberate choice to pay an "Architecture Tax" to improve the user experience. Instead of generating a single image file to serve both the user and the printer, we implemented a **Dual-Asset Pipeline**.
+We made a deliberate choice to pay an "Architecture Tax" to separate manufacturing needs from user delight. This resulted in a sophisticated Multi-Asset Pipeline:
 
-- **The Blueprint (For the Machine):** We generate a raw, 300 DPI, full-bleed CMYK-compatible PNG with square corners. This file is ugly to look at but perfect for Gelato’s cutting machines, ensuring no white edges appear on the final card.
-- **The Preview (For the Human):** We simultaneously generate a cropped, RGB-optimized PNG with rounded corners that mimics the physical die-cut card.
+- **The Blueprint (For the Machine):** We generate a raw, 300 DPI, full-bleed CMYK-compatible PNG (1275x1650px). For standard orders, this is the final asset.
 
-By separating these concerns in `imageService.ts`, we ensure the customer sees a beautiful "product shot" in their email, while the manufacturer gets a technically perfect file. This reduces print errors and increases customer trust.
+- **The Foil Sandwich (For Premium):** When a user selects a metallic finish, the system forks. It generates an Ink Base (Art + Text on White) and a distinct Foil Mask (Black Footer + White Knockout Text). These are uploaded separately and dynamically injected into the manufacturing payload.
+
+- **The Digital Artifact (For the Human):** We strictly reject sending the "Factory Blueprint" to the user. Instead, we electronically "guillotine" the 40px bleed area and apply simulated "Horizon Gradients" to the digital file. This ensures the user downloads a clean, edge-to-edge digital keepsake that looks exactly like the finished physical object, not a schematic with ugly white margins.
 
 ### 5.4 Privacy by Design: The Janitor Protocol
 
@@ -531,6 +551,9 @@ Security is not an addon; it is baked into the infrastructure.
 - **Active Awareness Compliance:** We integrated legal compliance directly into the UX. The checkout flow uses embedded accordions for Terms and Privacy policies, ensuring "Active Awareness"—users must interact with the agreement layer to proceed, ensuring informed consent without disrupting the purchase flow.
 - **The "Trust but Verify" Gatekeeper:** We recognized that the transition from client-side Firestore rules to server-side Admin SDK logic creates a potential security gap. We closed this by implementing manual ownership verification logic in every write-capable API route, effectively re-implementing RLS (Row-Level Security) at the application layer to prevent unauthorized resource manipulation via IDOR.
 - **Asset Integrity (Explicit Authority):** To prevent "bait-and-switch" discrepancies between the UI and the backend, we enforce an **Explicit Authority** pattern. The client must explicitly request a specific asset URL, and the server validates that this specific URL belongs to the authenticated user's underlying Firestore document before processing any generation or order requests.
+- **The "VIP Pass" Protocol (App Check Bypass):** To resolve the "Security Deadlock" where Firebase App Check blocks external fulfillment services (Gelato), we implemented a **Signed URL Strategy**.
+  - **Manufacturing Assets:** We generate **V4 Signed URLs** (valid for 7 days) for the print files. This cryptographic signature acts as a temporary "VIP Pass," allowing Gelato's servers to bypass the App Check firewall to download the high-res assets without exposing the storage bucket to the public.
+  - **Email Persistence:** For user-facing emails, we force a legacy **V2 Signature** logic to generate preview URLs with a long-term expiration (Year 2050). This ensures that the "Order Confirmation" email remains visually intact in the user's inbox for decades, solving the "broken image" rot common in secure systems.
 
 ### 5.7 Mobile-First Styling Architecture
 
@@ -551,6 +574,22 @@ Similarly, the "Clump Factory" was not built merely to solve the technical probl
 Furthermore, the very existence of this Public Gallery is a structural commitment to inclusivity over exclusivity. We rejected the "walled garden" model that demands an app download or a login credential just to experience a moment of beauty. By architecting a high-performance, read-only web layer, we meet curious newcomers exactly where they are—in the browser, on a link shared by a friend, without friction or commitment. This decision transforms the Haikuverse from a closed club into an open agora, ensuring that the poetry experience remains accessible to all, while reserving the deep tools of creation for those ready to take the next step.
 
 Most critically, the "Janitor" protocol embodies our commitment to data hygiene and respect. By treating a user's physical address as a temporary necessity rather than a permanent asset, we operationalized the belief that personal data is something we are privileged to borrow only for the specific moment of fulfillment. We do not build vast data lakes; we build clean rooms. In the Haikuverse ecosystem, technology steps back from being a central authority to become a humble, efficient steward, ensuring that from the first spark of creativity to the final delivery of the physical artifact, the user’s sovereignty and delight remain the undisputed center of gravity.
+
+### 5.10 The "Reverse-Engineered" Foil Protocol
+
+The integration of metallic foil required solving a critical documentation gap. The public Gelato API v4 documentation details how to submit PDF/X files with spot colors, but is ambiguous regarding discrete file assets for masking. We rejected the complexity of server-side PDF generation (pdf-lib) in favor of our existing high-performance sharp pipeline. To achieve this, we performed a series of "Draft Order Probes" against the live API to reverse-engineer the required payload structure. We discovered that while the API rejects arbitrary file keys, it accepts a specific, undocumented file object structure for masks:
+
+```json
+{ "type": "foil", "url": "..." }
+```
+
+We operationalized this discovery in the onOrderPaid Cloud Function. The function now inspects the immutable Order Clump in Firestore. If it detects a foilMaskUrl, it dynamically injects this third file object into the payload alongside the default (Front) and back (Rear) assets. This allows us to trigger advanced manufacturing behaviors using simple, generated PNGs, keeping our dependency tree light and our rendering logic fast.
+
+### 5.11 Engineering the "Sniper Campaign"
+
+The expansion into physical manufacturing was not a generic e-commerce add-on, but a strategic engineering requirement to support a "Sniper Campaign" targeting specific, high-intent communities such as **r/DnD**, **r/RPGdesign**, **r/magicbuilding**, and **r/worldbuilding**. For these creators, digital content is ephemeral, but a physical "artifact" or tabletop prop is essential.
+
+To successfully market the Haikuverse ecosystem to these groups, the application had to bridge the gap between digital lore and tangible reality by offering premium **Metallic Foil** prints (Gold, Silver, Copper). This marketing strategy dictated strict engineering constraints. The backend architecture had to be overhauled to support a complex **Dual-Layer Asset Pipeline**. Unlike standard prints, foil manufacturing requires the dynamic separation of the visual asset into a full-color base and a high-contrast "Foil Mask." This required the `onOrderPaid` Cloud Function to orchestrate a sophisticated hand-off to the **Gelato API (v4)**, ensuring that the high-fidelity aesthetics generated by Imagen 4—originally designed for emotional resonance in the app—could be successfully translated into crisp, physical metallic detailing. This feature validates the ecosystem's architecture, proving that rigorous backend engineering can directly unlock niche, high-value user acquisition channels.
 
 ---
 
