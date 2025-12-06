@@ -204,6 +204,7 @@ flowchart LR
 
   FirestoreDB -- "Trigger (Paid)" --> OnOrderPaid
   OnOrderPaid -- "Create Order (v4)" --> GelatoAPI
+  OnOrderPaid -- "Generate Signed URLs" --> StorageBucket
 
   FirestoreDB -- "Trigger (Mail Doc)" --> EmailExt
   EmailExt -- "Send SMTP" --> GoogleWorkspace
