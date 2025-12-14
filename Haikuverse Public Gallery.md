@@ -20,7 +20,7 @@ The Haikuverse Public Gallery is a high-performance Next.js web application desi
 - **High-Resolution Print Studio:** A dedicated Print Studio empowers creators to browse their generated images and purchase physical Haikucards.
   - **Server-Side Composition:** Uses the `sharp` library to generate two distinct 300 DPI assets per order: a full-bleed **Blueprint** for the printer and a rounded **Preview** for the user.
   - **Immutable Orders:** Implements a "Clump Factory" pattern (`/api/orders/create`) that snapshot-freezes pricing, shipping data, and print specifications into a `pending_payment` document _before_ the transaction begins, ensuring total data integrity.
-  - **Premium Metallic Foil Engine:** A specialized parallel pipeline handles "Gold," "Silver," and "Copper" materials. It generates a manufacturing-grade "Negative Mask" (Black Background/White Knockout) to instruct the printer exactly where to apply foil versus ink, creating a mixed-material artifact with high-contrast matte text inside a metallic footer.
+- **Premium Metallic Foil Engine:** A specialized parallel pipeline handles "Gold" and "Silver" materials. It bypasses the standard PNG workflow to generate a manufacturing-grade **PDF/X-4 artifact**. This container employs a "Hybrid Vector/Raster" strategy, injecting high-fidelity 300 DPI raster masks into a vector-compliant PDF envelope to instruct the HP Indigo press exactly where to apply foil versus ink.
 - **Stripe E-Commerce & Tax Compliance:** Features a full **Stripe** integration with **Payment Elements** (supporting Apple Pay/Google Pay) and robust webhook signature verification.
   - **Automated Tax:** Utilizes `stripe.tax.calculations.create` on the server to calculate sales tax in real-time based on the user's shipping address.
   - **Tax Ledger:** A webhook listener (`/api/stripe/webhook`) atomically records every transaction into a dedicated, anonymized **Firestore Tax Ledger**, separating tax liability from net revenue for GAAP compliance.
@@ -82,6 +82,7 @@ flowchart LR
     subgraph CloudRun["Google Cloud Run (Next.js Server)"]
         direction TB
         FirebaseAdminModule["**src/lib/firebaseAdmin.ts**<br>(Singleton Admin SDK)"]
+        FoilPdfService["**src/lib/foilPdfService**<br>(PDF/X-4 Engine)"]
 
         subgraph ServerRuntime ["Runtime API Routes"]
             %% Data Fetching
@@ -181,6 +182,8 @@ flowchart LR
   User -- "Customizes Card" --> DashboardPageClient
   DashboardPageClient -- "Generate Preview" --> ApiGeneratePng
   ApiGeneratePng -- "Upload Asset" --> FirebaseAdminModule
+  ApiCreateOrder -- "Forks (Foil)" --> FoilPdfService
+  FoilPdfService -- "Returns Artifact" --> FirebaseAdminModule
 
   DashboardPageClient -- "Create Order" --> ApiCreateOrder
   ApiCreateOrder -- "Generate & Upload" --> FirebaseAdminModule
@@ -217,6 +220,7 @@ flowchart LR
   style ExternalServices fill:#E0F2F1,stroke:#009688,stroke-width:2px
 
   style ApiGeneratePng fill:#ffecb3,stroke:#ffa000
+  style FoilPdfService fill:#ffecb3,stroke:#ffa000
   style ApiCreateOrder fill:#ffecb3,stroke:#ffa000
   style ApiCreatePayment fill:#ffecb3,stroke:#ffa000
   style ApiStripeWebhook fill:#dcedc8,stroke:#689f38
@@ -227,21 +231,21 @@ flowchart LR
 
 ## 3. Core Architecture & Services
 
-| Layer               | Technology / Service                      | Purpose                                            |
-| :------------------ | :---------------------------------------- | :------------------------------------------------- |
-| **Web Framework**   | Next.js (App Router), React, TypeScript   | UI, Routing, SSG/SSR, API Routes                   |
-| **Styling**         | CSS Modules                               | Component-scoped styling                           |
-| **Image Engine**    | `sharp` & `opentype.js`                   | Server-side generation of 300 DPI print assets     |
-| **E-Commerce**      | Stripe (Payment Elements & Tax)           | Payments, Apple/Google Pay, & Auto-Tax calculation |
-| **Fulfillment**     | Gelato API v4                             | Automated print-on-demand manufacturing            |
-| **Notifications**   | Firebase Extension (Trigger Email)        | Transactional emails via Google Workspace SMTP     |
-| **Client Auth**     | Firebase Auth SDK, Google Sign-In (GSI)   | User login & session management                    |
-| **Client Security** | Firebase App Check (reCAPTCHA Enterprise) | Verifying client integrity                         |
-| **Server Backend**  | Google Cloud Run (via Firebase)           | Hosts all server-side Next.js logic                |
-| **Database**        | Cloud Firestore                           | Core data, Order history, & Tax Ledger             |
-| **Object Storage**  | Google Cloud Storage                      | Hosting full-bleed blueprints & email previews     |
-| **Server Secrets**  | Google Secret Manager                     | Secure injection of Stripe/Gelato keys             |
-| **Hosting**         | Firebase Hosting                          | Serves static assets, routes backend requests      |
+| Layer               | Technology / Service                      | Purpose                                                             |
+| :------------------ | :---------------------------------------- | :------------------------------------------------------------------ |
+| **Web Framework**   | Next.js (App Router), React, TypeScript   | UI, Routing, SSG/SSR, API Routes                                    |
+| **Styling**         | CSS Modules                               | Component-scoped styling                                            |
+| **Image Engine**    | `sharp`, `opentype.js`, `pdf-lib`         | Server-side generation of 300 DPI print assets & PDF/X-4 containers |
+| **E-Commerce**      | Stripe (Payment Elements & Tax)           | Payments, Apple/Google Pay, & Auto-Tax calculation                  |
+| **Fulfillment**     | Gelato API v4                             | Automated print-on-demand manufacturing                             |
+| **Notifications**   | Firebase Extension (Trigger Email)        | Transactional emails via Google Workspace SMTP                      |
+| **Client Auth**     | Firebase Auth SDK, Google Sign-In (GSI)   | User login & session management                                     |
+| **Client Security** | Firebase App Check (reCAPTCHA Enterprise) | Verifying client integrity                                          |
+| **Server Backend**  | Google Cloud Run (via Firebase)           | Hosts all server-side Next.js logic                                 |
+| **Database**        | Cloud Firestore                           | Core data, Order history, & Tax Ledger                              |
+| **Object Storage**  | Google Cloud Storage                      | Hosting full-bleed blueprints & email previews                      |
+| **Server Secrets**  | Google Secret Manager                     | Secure injection of Stripe/Gelato keys                              |
+| **Hosting**         | Firebase Hosting                          | Serves static assets, routes backend requests                       |
 
 The following sections provide a detailed breakdown of the application's core components.
 
@@ -292,7 +296,9 @@ This layer manages the connection to backend services and enforces security, run
 - **Secure Credentials:** In production, server-side credentials (`PROJECT_ID`, `CLIENT_EMAIL`, `PRIVATE_KEY`) are **injected securely from Google Secret Manager** into the Cloud Run environment at deploy time. This is configured in `firebase.json` using the `secretEnvironmentVariables` block.
 - **API Routes (`src/app/api/`):** All API routes have been refactored to **import the centralized `db` and `auth` instances** from `firebaseAdmin.ts`. This ensures they all use the single, correctly authenticated Admin SDK instance.
 - **Data Fetching Service (`src/lib/firebaseService.ts`):** Centralizes reusable data-fetching functions (e.g., `getAllPoets`, `getStarById`) used by Server Components during SSG.
-- **Server-Side Image Generation:** A key API route, `/api/print/generate-png`, leverages the **`sharp`** library for high-performance image processing and **`opentype.js`** for precise text measurement. It composites artwork, dynamically-sized haiku text with embedded fonts, and user-selected backgrounds onto a transparent canvas, producing a print-ready 300 DPI PNG with true transparency.
+- **Server-Side Manufacturing (`src/lib/foilPdfService.ts`):** A key API route, `/api/orders/create`, leverages a bifurcated pipeline:
+  - **Standard Orders:** Uses **`sharp`** to composite artwork and text into a single transparent PNG.
+  - **Foil Orders:** Uses **`pdf-lib`** to assemble chemically separated "Ink" and "Foil" layers into a **PDF/X-4** container. It embeds the **GRACoL 2006 ICC Profile** to ensure the printer's RIP correctly interprets the K100 mask triggers, and employs a "Supersampling" strategy (rendering SVG text at high density, then downscaling) to ensure crisp, aliasing-free text knockouts.
 
 ---
 
@@ -533,9 +539,7 @@ This "Clump" (the `pending_payment` document) acts as a single source of truth. 
 We made a deliberate choice to pay an "Architecture Tax" to separate manufacturing needs from user delight. This resulted in a sophisticated Multi-Asset Pipeline:
 
 - **The Blueprint (For the Machine):** We generate a raw, 300 DPI, full-bleed CMYK-compatible PNG (1275x1650px). For standard orders, this is the final asset.
-
-- **The Foil Sandwich (For Premium):** When a user selects a metallic finish, the system forks. It generates an Ink Base (Art + Text on White) and a distinct Foil Mask (Black Footer + White Knockout Text). These are uploaded separately and dynamically injected into the manufacturing payload.
-
+- **The PDF/X-4 Container (For Premium):** When a user selects a metallic finish, the system forks. Instead of sending raw images, we assemble a manufacturing-grade PDF/X-4 container using `pdf-lib`. This file holds the "Ink" (color) and "Foil" (mask) as chemically distinct layers, ensuring the HP Indigo press treats them as separate printing plates.
 - **The Digital Artifact (For the Human):** We strictly reject sending the "Factory Blueprint" to the user. Instead, we electronically "guillotine" the 40px bleed area and apply simulated "Horizon Gradients" to the digital file. This ensures the user downloads a clean, edge-to-edge digital keepsake that looks exactly like the finished physical object, not a schematic with ugly white margins.
 
 ### 5.4 Privacy by Design: The Janitor Protocol
@@ -588,15 +592,19 @@ Furthermore, the very existence of this Public Gallery is a structural commitmen
 
 Most critically, the "Janitor" protocol embodies our commitment to data hygiene and respect. By treating a user's physical address as a temporary necessity rather than a permanent asset, we operationalized the belief that personal data is something we are privileged to borrow only for the specific moment of fulfillment. We do not build vast data lakes; we build clean rooms. In the Haikuverse ecosystem, technology steps back from being a central authority to become a humble, efficient steward, ensuring that from the first spark of creativity to the final delivery of the physical artifact, the user’s sovereignty and delight remain the undisputed center of gravity.
 
-### 5.10 The "Reverse-Engineered" Foil Protocol
+### 5.10 The "Industrial Injection" Foil Protocol
 
-The integration of metallic foil required solving a critical documentation gap. The public Gelato API v4 documentation details how to submit PDF/X files with spot colors, but is ambiguous regarding discrete file assets for masking. We rejected the complexity of server-side PDF generation (pdf-lib) in favor of our existing high-performance sharp pipeline. To achieve this, we performed a series of "Draft Order Probes" against the live API to reverse-engineer the required payload structure. We discovered that while the API rejects arbitrary file keys, it accepts a specific, undocumented file object structure for masks:
+The integration of metallic foil required solving a critical documentation gap. The public Gelato API v4 documentation details how to submit PDF/X files but does not specify how to trigger foil without using their proprietary online editor. We initially attempted to reverse-engineer hidden file keys (e.g., `{ "type": "foil" }`), but discovered that the manufacturing API rejects discrete mask files.
 
-```json
-{ "type": "foil", "url": "..." }
-```
+We operationalized a solution by implementing a **Direct PDF/X-4 Injection Strategy**.
 
-We operationalized this discovery in the onOrderPaid Cloud Function. The function now inspects the immutable Order Clump in Firestore. If it detects a foilMaskUrl, it dynamically injects this third file object into the payload alongside the default (Front) and back (Rear) assets. This allows us to trigger advanced manufacturing behaviors using simple, generated PNGs, keeping our dependency tree light and our rendering logic fast.
+Instead of asking the API to combine files, we built the manufacturing artifact ourselves on the server. The `onOrderPaid` Cloud Function detects foil orders and routes them to a dedicated `foilPdfService`. This service:
+
+1.  **Separates the Chemistry:** Generates two 300 DPI buffers: one for CMYK Ink (Artwork) and one for the Foil Trigger (K100 Black).
+2.  **Supersamples the Text:** Renders the text mask at high density before resizing (`fit: 'fill'`) to eliminate the jagged aliasing artifacts common in rasterized vector masks.
+3.  **Encapsulates in PDF/X-4:** Injects these buffers into a PDF container with the **GRACoL 2006** Output Intent.
+
+This allows us to bypass the API's template limitations entirely, submitting a **fully encapsulated** PDF that contains all the advanced manufacturing instructions internally, passing the RIP's pre-flight checks as a standard document.
 
 ### 5.11 Engineering the "Sniper Campaign"
 
